@@ -11,20 +11,21 @@ from datetime import datetime
 
 class MatlabTaskCaller(object):
 
-	def __init__(self,dir,sessionID = None, verbose = False):
+	def __init__(self,taskID, path,sessionID = None, verbose = False):
 			self.verbose = verbose;
 			self.outIO = io.StringIO()
 			self.errIO = io.StringIO()
-			self.path2Save = dir
+			self.path2Save = path
+			self.taskID = taskID
 			if(sessionID is not None):
-					if self.verbose : print('Session defined')
+					self.log('Session defined')
 					self.sessionID = sessionID
 					self.joinMLSession()
 			else:
-					if self.verbose : print('Searching for sessions')
+					self.log('Searching for sessions')
 					availableSessions = self.searchSharedSession()
 					if(len(availableSessions)>0):
-							if self.verbose : print('There are sessions')
+							self.log('There are sessions')
 							self.sessionID = availableSessions[0]
 							self.joinMLSession()
 					else:
@@ -34,47 +35,41 @@ class MatlabTaskCaller(object):
 					os.mkdir(self.path2Save)
 
 	def _zipOutputs(self):
-			filePaths = self._retrieve_file_paths(self.path2save)
-			for fileName in filePaths:
-					# writing files to a zipfile
-					zip_file = zipfile.ZipFile(self.path2save+'/out'+'.zip', 'w')
-					with zip_file:
-							# writing each file one by one
-							for file in filePaths:
-									zip_file.write(file)
+			zf = zipfile.ZipFile(self.path2Save+"/out.zip", "w")
+			for root, dirs, files in os.walk(self.path2Save):
+				for file in files:
+					if(('out.zip' not in file) & ('log.txt' not in file)):
+						zf.write(os.path.join(root, file))
 
-	def _retrieve_file_paths(self,dirName):
-			filePaths = []
-			# Read all directory, subdirectories and file lists
-			for root, directories, files in os.walk(dirName):
-					for filename in files:
-							# Create the full filepath by using os module.
-							filePath = os.path.join(root, filename)
-							filePaths.append(filePath)
-			return filePaths
 
 	def joinMLSession(self):
 			try:
 					self.engine = matlab.engine.connect_matlab()
 			except Exception as e:
-					if self.verbose : print('Not available yet : ' + str(e))
+					self.log('Not available yet : ' + str(e))
 					time.sleep(10)
 					self.joinMLSession()
 					
 	def checkStatus(self):
 		while (not self.asyncTask.done()):
-			if self.verbose : print('Checking and saving status...')
+			self.log('Checking and saving status...')
 			time.sleep(10)
-			self._saveData('Running','status',self.path2Save)
+			self.updateStatus('running')
 			if(os.path.exists((self.path2Save+'/kill.txt'))):
-				if self.verbose : print('Sending cancel signal to task...')
+				self.log('Sending cancel signal to task...')
 				self.killTask()
-				self._saveData('Cancelled','status',self.path2Save)
+				#self._saveData('Cancelled','status',self.path2Save)
+				self.updateStatus('canceled')										
 				return
 		variables = self.asyncTask.result()
-		if self.verbose : print('Completed')
-		self._saveData('Finished','status',self.path2Save)
-		session.saveIO()
+		self.log('Completed')
+		#self._saveData('Finished','status',self.path2Save)
+		self.updateStatus('completed')		
+		self.saveIO()
+		self._zipOutputs()
+
+	def updateStatus(self,newStatus):
+		self._saveData(newStatus,'status'+str(self.taskID),'./')
 
 	def killTask(self):
 		while(not self.asyncTask.cancelled()):
@@ -83,16 +78,20 @@ class MatlabTaskCaller(object):
 			except Exception as e:
 				print('Task cannot be cancelled, due to error :')
 				print(str(e))
-		if self.verbose : print('User cancelled the task')
+		self.log('User cancelled the task')
 				
-	def runTask(self,name,args):
+	def runTask(self,name,args,runfolder):
+			#runfolder = './TasksResults'
+			addpath = 'addpath(genpath("' + str(runfolder) + '"))'
+			print(addpath)
+			self.engine.eval(addpath,background = True)
 			if('exit' in name):
 				self.closeMLSession()
 			else:
-				if self.verbose : print(name)
+				self.log(name)
 				#Obtain the number of outputs of a given script or funtion
 				numberouts = int(self.engine.nargout(name))
-				if self.verbose : print('outs expected: ' + str(numberouts))
+				self.log('outs expected: ' + str(numberouts))
 				#Call funtion by name and redirect stdout and stderr			  
 				try:
 					self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
@@ -101,12 +100,12 @@ class MatlabTaskCaller(object):
 					variables = 'Error'
 
 	def saveIO(self):
-			if self.verbose : print('Saving outputs')
+			self.log('Saving outputs')
 			self._saveData(self.outIO,'out',self.path2Save)
-			self._saveData(self.errIO,'log',self.path2Save)
+			self._saveData(self.errIO,'errors',self.path2Save)
 
 	def _saveData(self,data,name,path2save):
-			#if self.verbose : print('Saving Info...')
+			#self.log('Saving Info...')
 			fileName = path2save + "/" + name + ".txt"
 			try:
 					file = open(fileName,'x')
@@ -126,41 +125,47 @@ class MatlabTaskCaller(object):
 			except:
 					print('Session Finished')
 
+	def log(self,data):
+			if(self.verbose):
+				datetimestr = datetime.now()
+				print('[' + datetimestr.strftime("%X %x") + '] : ' + data)
+
 
 def main(argv):
 	ON_POSIX = 'posix' in sys.builtin_module_names
 	sessionID = None
 	verbose = True
+	taskID = None
+	path = None
 	try:
-			opts, args = getopt.getopt(argv,"ht:p:s:v:d:",["task=","params=","session=","verbose="])
+			opts, args = getopt.getopt(argv,"ht:a:s:v:i:p:r:",["task=","args=","session=","verbose=","taskID=","path=","runF="])
 	except getopt.GetoptError:
 			sys.exit(2)
 	for opt, arg in opts:
 			if opt == '-h':
-					print('python callTaskAsync -t <taskName> -p <parameters> -s <sessionID> -v <verbose>')
+					print('python callTaskAsync -t <taskName> -a <args> -s <sessionID> -v <verbose> -i <taskID> -p <path> -r <runFolder>')
 					sys.exit()
 			elif opt in ("-t", "--task"):
 					task = arg
-			elif opt in ("-p", "--params"):
+			elif opt in ("-a", "--args"):
 					params = arg
 			elif opt in ("-s", "--session"):
 					sessionID = arg
 			elif opt in ("-v", "--verbose"):
 					verbose = arg
-			elif opt in ("-d", "--dir"):
-					dir = arg
+			elif opt in ("-i", "--taskID"):
+					taskID = arg
+			elif opt in ("-p", "--path"):
+					savepath = arg
+			elif opt in ("-r", "--runF"):
+					runpath = arg
+			
 	
-	session = MatlabTaskCaller(dir,sessionID,verbose)
-	if verbose : print(session.sessionID)
-	#time.sleep(10)
-	#time.sleep(10)
-	session.runTask(task, params)
+	session = MatlabTaskCaller(taskID, savepath,sessionID,verbose)
+	session.log('Task : ' + str(task) + ' and params : ' + str(params))
+	session.runTask(task, params, runpath)
 	session.checkStatus()
 
-#future = matlab.engine.connect_matlab(background=True)
-#eng = future.result()
-#t,m = eng.maximumFile('ins.txt',nargout=2)
-#eng.quit()
 if __name__ == "__main__":
    main(sys.argv[1:])
 
