@@ -44,8 +44,8 @@ class MatlabSessionLauncher(object):
 
 	def runTask(self,name,args):
 		command = 'nohup python3.6 callTaskAsync.py \
--t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
-> {5}/log.txt 2>&1 &' 
+		-t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
+		> {5}/log.txt 2>&1 &' 
 		#print(command.format(name,args,self.sessionID,self.taskID,self.resultsFolder,self.resultsFolder))
 		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.runFolder,self.resultsFolder), shell=True)
 
@@ -67,11 +67,8 @@ class MatlabSessionLauncher(object):
 		file.write('Task cancelled at ' + datetimestr.strftime("%X %x"))
 	
 	def locateParamsFile(self,params):
-		#print(params)
 		for files in os.listdir('./'):
-			#print(files)
 			if(params in str(files)):
-				#print(files)
 				return files
 		return None
 	
@@ -92,29 +89,26 @@ class MatlabSessionLauncher(object):
 			os.mkdir(self.resultsFolder)
 	
 	def _makeSymLinks(self,src,dst):
-		#src = self.tasksFolder+task
-		#dst = self.runFolder
 		for root, dirs, files in os.walk(src):
-			for file in files:
-				newfile = os.path.join(root,file).replace(src,dst)
-				os.symlink(os.path.join(root,file),newfile)
-				print(newfile)
-				print(os.path.join(root,file))
-			for dir in dirs:
-				os.mkdir(dst+dir)
-	
+			for adir in dirs:
+				newfolder = os.path.join(root,adir).replace(src,dst)
+				os.mkdir(newfolder)
+			for afile in files:
+				newfile = os.path.join(root,afile).replace(src,dst)
+				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
+			
 	def copyTasks(self, task):
 		self._makeSymLinks(self.tasksFolder+task,self.runFolder)
 		
 	def copyInputs(self,params):
-		os.symlink(params,self.runFolder+'/'+params)
+		os.symlink(os.path.abspath(params),os.path.abspath(self.runFolder+'/'+params))
 	
-	def prepareTask2Run(self,task,params):
+	def prepareTask2Run(self,task,params,dynamic = False):
+		if(dynamic):
+			params = self.locateParamsFile(params)			
 		self._createFolders()
 		self.copyTasks(task)
-		self.copyInputs(params)
-			
-				
+		self.copyInputs(params)		
 
 def main(argv):
 	ON_POSIX = 'posix' in sys.builtin_module_names
@@ -137,8 +131,6 @@ def main(argv):
 			kill = arg
 					
 	session = MatlabSessionLauncher(kill = kill)
-	params = str(session.locateParamsFile(params))
-	#session._obtainNextPath2Save()
 	if(task is not None):
 		session.prepareTask2Run(task,params)
 		session.runTask(task, params)
@@ -146,4 +138,3 @@ def main(argv):
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
-

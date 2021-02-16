@@ -8,15 +8,39 @@ import random
 import time
 from subprocess import PIPE, Popen
 from datetime import datetime
+import shutil
 
 class MatlabTaskCaller(object):
 
-	def __init__(self,taskID, path,sessionID = None, verbose = False):
+	def __init__(self,taskID, path = None, runpath = None, dynamic = False, sessionID = None, verbose = False):
+			#print(dynamic)
+			self.dynamic = dynamic			
 			self.verbose = verbose;
 			self.outIO = io.StringIO()
 			self.errIO = io.StringIO()
-			self.path2Save = path
-			self.taskID = taskID
+			self.tasksFolder = './Tasks/'
+			random.seed(datetime.now())	
+			date = random.randint(1,1000)
+			if(path is not None):
+				self.path2Save = path
+			else:
+				self.path2Save = './Results/'+'ciemat'+str(date)
+				if(not os.path.isdir(self.path2Save)):
+					os.mkdir(self.path2Save)
+			if(runpath is not None):
+				self.runPath = runpath
+				#self.runFolder = runpath
+			else:
+				self.runPath = './Run/'+'ciemat'+str(date)
+				if(not os.path.isdir(self.runPath)):
+					os.mkdir(self.runPath)
+			if(self.dynamic):
+				self.taskID = taskID
+			else:
+				self.taskID = str(date)
+			self.preStatus = []
+			self.postStatus = []
+			self.savePreStatus()
 			if(sessionID is not None):
 					self.log('Session defined')
 					self.sessionID = sessionID
@@ -41,6 +65,17 @@ class MatlabTaskCaller(object):
 					if(('out.zip' not in file) & ('log.txt' not in file)):
 						zf.write(os.path.join(root, file))
 
+	def copyTasks(self, task):
+		self._makeSymLinks(self.tasksFolder+task,self.runPath)
+
+	def _makeSymLinks(self,src,dst):
+		for root, dirs, files in os.walk(src):
+			for adir in dirs:
+				newfolder = os.path.join(root,adir).replace(src,dst)
+				os.mkdir(newfolder)
+			for afile in files:
+				newfile = os.path.join(root,afile).replace(src,dst)
+				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
 
 	def joinMLSession(self):
 			try:
@@ -49,11 +84,19 @@ class MatlabTaskCaller(object):
 					self.log('Not available yet : ' + str(e))
 					time.sleep(10)
 					self.joinMLSession()
-					
+	def searchSharedSession(self):
+		try:
+			return matlab.engine.find_matlab()
+		except:
+			return None	
+			
 	def checkStatus(self):
 		while (not self.asyncTask.done()):
 			self.log('Checking and saving status...')
-			time.sleep(10)
+			if(self.dynamic):
+				time.sleep(0.5)
+			else:
+				time.sleep(10)
 			self.updateStatus('running')
 			if(os.path.exists((self.path2Save+'/kill.txt'))):
 				self.log('Sending cancel signal to task...')
@@ -62,11 +105,18 @@ class MatlabTaskCaller(object):
 				self.updateStatus('canceled')										
 				return
 		variables = self.asyncTask.result()
+		#self.engine.save('vars',nargout=0)
+		self.log('Output Variables : ' + str(variables))
+		self.engine.close('all')
 		self.log('Completed')
 		#self._saveData('Finished','status',self.path2Save)
 		self.updateStatus('completed')		
-		self.saveIO()
-		self._zipOutputs()
+		if(self.dynamic):
+			return variables		
+		else:
+			self.saveIO(variables)
+			self._zipOutputs()
+			return None
 
 	def updateStatus(self,newStatus):
 		self._saveData(newStatus,'status'+str(self.taskID),'./')
@@ -80,11 +130,12 @@ class MatlabTaskCaller(object):
 				print(str(e))
 		self.log('User cancelled the task')
 				
-	def runTask(self,name,args,runfolder):
-			#runfolder = './TasksResults'
-			addpath = 'addpath(genpath("' + str(runfolder) + '"))'
-			print(addpath)
-			self.engine.eval(addpath,background = True)
+	def runTask(self,name,args):
+			if(self.dynamic):
+				self.copyTasks(name)
+			self.engine.clear(nargout=0)			
+			addpath = 'userpath("' + os.path.abspath(str(self.runPath)) + '")'			
+			self.engine.eval(addpath,background = True,nargout=0)
 			if('exit' in name):
 				self.closeMLSession()
 			else:
@@ -99,10 +150,13 @@ class MatlabTaskCaller(object):
 					print('Error : ' + str(e))
 					variables = 'Error'
 
-	def saveIO(self):
+	def saveIO(self,variables):
+			self.savePostStatus()
+			self.moveNewFiles()
 			self.log('Saving outputs')
-			self._saveData(self.outIO,'out',self.path2Save)
-			self._saveData(self.errIO,'errors',self.path2Save)
+			self._saveData(str(variables),'out',self.path2Save)
+			self._saveData(self.outIO,'matlabOut',self.path2Save)
+			#self._saveData(self.errIO,'errors',self.path2Save)
 
 	def _saveData(self,data,name,path2save):
 			#self.log('Saving Info...')
@@ -124,6 +178,29 @@ class MatlabTaskCaller(object):
 					self.engine.eval('exit',nargout=0)
 			except:
 					print('Session Finished')
+	
+	def savePreStatus(self):	
+			#print(self.runPath)
+			for dirpath,_,filenames in os.walk(self.runPath):
+					for f in filenames:
+						self.preStatus.append(os.path.abspath(os.path.join(dirpath, f)))
+			#print(str(self.preStatus))
+
+	def savePostStatus(self):	
+			for dirpath,_,filenames in os.walk(self.runPath):
+					for f in filenames:
+						self.postStatus.append(os.path.abspath(os.path.join(dirpath, f)))
+
+	def moveNewFiles(self):
+			self.savePostStatus()
+			added = list(set(self.postStatus)-set(self.preStatus))
+
+			for newfile in added:
+				dstfile = newfile.replace(os.path.abspath(self.runPath),os.path.abspath(self.path2Save))
+				dstfolder = os.path.split(dstfile)[0]		
+				if not os.path.exists(dstfolder):
+					os.makedirs(dstfolder)
+				shutil.copy(newfile,dstfile)
 
 	def log(self,data):
 			if(self.verbose):
@@ -159,13 +236,12 @@ def main(argv):
 					savepath = arg
 			elif opt in ("-r", "--runF"):
 					runpath = arg
-			
 	
-	session = MatlabTaskCaller(taskID, savepath,sessionID,verbose)
+	session = MatlabTaskCaller(taskID = taskID, path = savepath, runpath = runpath, sessionID = sessionID, verbose = verbose)
+	#session = MatlabTaskCaller(taskID = taskID, savepath, runpath,sessionID,verbose)
 	session.log('Task : ' + str(task) + ' and params : ' + str(params))
-	session.runTask(task, params, runpath)
+	session.runTask(task, params)
 	session.checkStatus()
 
 if __name__ == "__main__":
    main(sys.argv[1:])
-
