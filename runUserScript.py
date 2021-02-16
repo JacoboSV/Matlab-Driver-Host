@@ -6,32 +6,29 @@ import io
 import time
 from subprocess import PIPE, Popen, STDOUT
 from datetime import datetime
+from remoteMatlabFolders import remoteMatlabFolders
 
 class MatlabSessionLauncher(object):
 
 	def __init__(self,sessionID = None, kill = None):
-		self.runFolder = './Run/'
-		self.resultsFolder = './Results/'
-		self.tasksFolder = './Tasks/'
+		if(kill is None):
+			self.folderHandler = remoteMatlabFolders()
+			self.taskID = self.folderHandler.taskID
+		else:
+			self.folderHandler = remoteMatlabFolders(taskID = kill)
+			self.taskID = self.folderHandler.taskID
 		if(sessionID is not None):
-			#print('Session defined')
 			self.sessionID = sessionID
-			self._obtainNextPath2Save()
 		else:
 			if(kill is not None):
 				self.killTaskWithID(kill)
 			else:
-				#print('Searching for sessions')
 				availableSessions = self.searchSharedSession()
 				if(len(availableSessions)>0):
-					#print('There are sessions')
 					self.sessionID = availableSessions[0]
-					self._obtainNextPath2Save()
 				else:
-					#print('No shared sessions, creating one')
 					self.createMLSession();
 					self.sessionID = None
-					self._obtainNextPath2Save()
 		
 	def createMLSession(self):
 		P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
@@ -47,7 +44,8 @@ class MatlabSessionLauncher(object):
 		-t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
 		> {5}/log.txt 2>&1 &' 
 		#print(command.format(name,args,self.sessionID,self.taskID,self.resultsFolder,self.resultsFolder))
-		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.runFolder,self.resultsFolder), shell=True)
+		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder))
+		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder), shell=True)
 
 	def closeMLSession(self):
 		if(self.engine is not None):
@@ -58,7 +56,7 @@ class MatlabSessionLauncher(object):
 			print('Session Finished')
 					
 	def killTaskWithID(self,kill):
-		fileName = self.runFolder + kill + "/kill.txt"
+		fileName = self.folderHandler.rootRunFolder + self.folderHandler.prefix + kill + "/kill.txt"
 		try:
 			file = open(fileName,'x')
 		except:
@@ -72,43 +70,11 @@ class MatlabSessionLauncher(object):
 				return files
 		return None
 	
-	def _obtainNextPath2Save(self):
-		taskID = 0
-		path2Save = self.runFolder+'ciemat'+str(taskID)
-		while(os.path.isdir(path2Save)):
-			taskID = taskID +1
-			path2Save = self.runFolder+'ciemat'+str(taskID)
-		self.taskID = taskID
-	
-	def _createFolders(self):
-		self.runFolder = './Run/'+'ciemat'+str(self.taskID)
-		self.resultsFolder = './Results/'+'ciemat'+str(self.taskID)
-		if(not os.path.isdir(self.runFolder)):
-			os.mkdir(self.runFolder)
-		if(not os.path.isdir(self.resultsFolder)):
-			os.mkdir(self.resultsFolder)
-	
-	def _makeSymLinks(self,src,dst):
-		for root, dirs, files in os.walk(src):
-			for adir in dirs:
-				newfolder = os.path.join(root,adir).replace(src,dst)
-				os.mkdir(newfolder)
-			for afile in files:
-				newfile = os.path.join(root,afile).replace(src,dst)
-				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
-			
-	def copyTasks(self, task):
-		self._makeSymLinks(self.tasksFolder+task,self.runFolder)
-		
-	def copyInputs(self,params):
-		os.symlink(os.path.abspath(params),os.path.abspath(self.runFolder+'/'+params))
-	
 	def prepareTask2Run(self,task,params,dynamic = False):
 		if(dynamic):
 			params = self.locateParamsFile(params)			
-		self._createFolders()
-		self.copyTasks(task)
-		self.copyInputs(params)		
+		self.folderHandler.copyTasks(task)
+		self.folderHandler.copyInputs(params)
 
 def main(argv):
 	ON_POSIX = 'posix' in sys.builtin_module_names
