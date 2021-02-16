@@ -44,6 +44,14 @@ class remoteMatlabFolders(object):
 	
 	
 	def _obtainNextPath2Save(self):
+		''' Looks for a valid name to a new run folder
+		Attributes
+		----------
+		src : string
+			Path with the source folder
+		dst : string
+			Path to the destination folder
+		'''
 		taskID = 0
 		path2Save = self.rootRunFolder+self.prefix+str(taskID)
 		while(os.path.isdir(path2Save)):
@@ -51,15 +59,24 @@ class remoteMatlabFolders(object):
 			path2Save = self.rootRunFolder+'ciemat'+str(taskID)
 		return taskID
 	
-	def _createFolders(self):
-		self.runFolder = './Run/'+'ciemat'+str(self.taskID)
-		self.resultsFolder = './Results/'+'ciemat'+str(self.taskID)
-		if(not os.path.isdir(self.runFolder)):
-			os.mkdir(self.runFolder)
-		if(not os.path.isdir(self.resultsFolder)):
-			os.mkdir(self.resultsFolder)
+	# def _createFolders(self):
+		
+		# self.runFolder = './Run/'+'ciemat'+str(self.taskID)
+		# self.resultsFolder = './Results/'+'ciemat'+str(self.taskID)
+		# if(not os.path.isdir(self.runFolder)):
+			# os.mkdir(self.runFolder)
+		# if(not os.path.isdir(self.resultsFolder)):
+			# os.mkdir(self.resultsFolder)
 	
 	def _makeSymLinks(self,src,dst):
+		''' Makes symbolic links to all the original files in the source folder
+		Attributes
+		----------
+		src : string
+			Path with the source folder
+		dst : string
+			Path to the destination folder
+		'''
 		for root, dirs, files in os.walk(src):
 			for adir in dirs:
 				newfolder = os.path.join(root,adir).replace(src,dst)
@@ -79,23 +96,38 @@ class remoteMatlabFolders(object):
 			os.mkdir(path)
 	
 	def copyInputs(self,params):
+		''' Creates symbolic link to the input files in the folder in <rootTasksFolder>
+		Attributes
+		----------
+		params : string
+			Path to the input file
+		'''
 		os.symlink(os.path.abspath(params),os.path.abspath(self.runFolder+'/'+params))
 	
-	def savePreStatus(self):	
-			for dirpath,_,filenames in os.walk(self.runFolder):
-					for f in filenames:
-						self.preStatus.append(os.path.abspath(os.path.join(dirpath, f)))
+	def savePreStatus(self):
+		''' Makes a copy of the folder tree structure in the <runFolder> to check if something changes
+		'''
+		for dirpath,_,filenames in os.walk(self.runFolder):
+				for f in filenames:
+					self.preStatus.append(os.path.abspath(os.path.join(dirpath, f)))
 
-	def savePostStatus(self):	
-			for dirpath,_,filenames in os.walk(self.runFolder):
-					for f in filenames:
-						self.postStatus.append(os.path.abspath(os.path.join(dirpath, f)))
+	def savePostStatus(self):
+		''' Makes a copy of the folder tree structure in the <runFolder> to check if something changes
+		'''
+		for dirpath,_,filenames in os.walk(self.runFolder):
+				for f in filenames:
+					self.postStatus.append(os.path.abspath(os.path.join(dirpath, f)))
 	
 	def copyTasks(self, task):
+		''' Creates symbolic links to the task files in the folder in <rootTasksFolder>
+		----------
+		task : string
+			Name of the task or script to be executed
+		'''
 		self._makeSymLinks(self.rootTasksFolder+task,self.runFolder)
 	
 	def checkCreateFolders(self):
-		''' Creates the three folders that are needed to run matlab tasks
+		''' Create the main folders needed to run the scripts and store outputs
 		'''
 		self._createFolder(self.rootRunFolder)
 		self._createFolder(self.rootResultsFolder)
@@ -104,6 +136,8 @@ class remoteMatlabFolders(object):
 		self._createFolder(self.resultsFolder)
 	
 	def moveNewFiles(self):
+		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
+		'''
 		self.savePostStatus()
 		added = list(set(self.postStatus)-set(self.preStatus))
 
@@ -115,6 +149,8 @@ class remoteMatlabFolders(object):
 			shutil.copy(newfile,dstfile)
 			
 	def _zipOutputs(self):
+		''' Create a zip with all the files and folders inside the results folder
+		'''
 		zf = zipfile.ZipFile(self.resultsFolder+"/out.zip", "w")
 		for root, dirs, files in os.walk(self.resultsFolder):
 			for file in files:
@@ -122,6 +158,14 @@ class remoteMatlabFolders(object):
 					zf.write(os.path.join(root, file))
 					
 	def saveIO(self,variables, outStream):
+		''' Saves all the new data, outputs and variables after the execution of the script/task
+		Attributes
+		----------
+		variables : object
+			The object that is returned by matlab engine
+		outStream : io.StringIO
+			Object containing all the outputs of the stdout pipe
+		'''
 		self.savePostStatus()
 		self.moveNewFiles()
 		self._saveData(str(variables),'out',self.resultsFolder)
@@ -129,6 +173,15 @@ class remoteMatlabFolders(object):
 		#self._saveData(self.errIO,'errors',self.path2Save)
 
 	def _saveData(self,data,name,path2save):
+		''' Saves in files the information in data as <path2save>/name.txt
+		----------
+		data : string or io.StringIO
+			The data to be saved
+		name : string
+			Name of the file to be saved
+		path2save : string
+			Pâth where the file must be stored, can be relative or absolute
+		'''
 		#self.log('Saving Info...')
 		fileName = path2save + "/" + name + ".txt"
 		try:

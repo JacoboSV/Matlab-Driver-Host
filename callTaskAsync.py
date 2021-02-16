@@ -40,19 +40,25 @@ class MatlabTaskCaller(object):
 							raise Exception("No shared sessions, last session expired")
 
 	def joinMLSession(self):
-			try:
-					self.engine = matlab.engine.connect_matlab()
-			except Exception as e:
-					self.log('Not available yet : ' + str(e))
-					time.sleep(10)
-					self.joinMLSession()
+		''' Connects to the a Matlab session,
+		'''
+		try:
+				self.engine = matlab.engine.connect_matlab()
+		except Exception as e:
+				self.log('Not available yet : ' + str(e))
+				time.sleep(10)
+				self.joinMLSession()
 	def searchSharedSession(self):
+		''' Looks for a valid running Matlab session in the computer, if present the engine is ready to be used in self.engine
+		'''
 		try:
 			return matlab.engine.find_matlab()
 		except:
 			return None	
 			
 	def checkStatus(self):
+		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
+		'''
 		while (not self.asyncTask.done()):
 			self.log('Checking and saving status...')
 			self.updateStatus('running')
@@ -79,9 +85,17 @@ class MatlabTaskCaller(object):
 			return None
 
 	def updateStatus(self,newStatus):
+		''' Stores the actual status in a status file
+		Attributes
+		----------
+		newStatus : string
+			New status to be logged in the status.txt file
+		'''
 		self.folderHandler._saveData(newStatus,'status'+str(self.taskID),'./')
 
 	def killTask(self):
+		''' Kills a running task
+		'''
 		timeout = 10;
 		while((not self.asyncTask.cancelled()) & (timeout>0)):
 			timeout = timeout -1;
@@ -95,35 +109,51 @@ class MatlabTaskCaller(object):
 		self.log('User cancelled the task')
 				
 	def runTask(self,name,args):
-			if(self.dynamic):
-				self.folderHandler.copyTasks(name)
-			self.engine.clear(nargout=0)			
-			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'			
-			self.engine.eval(addpath,background = True,nargout=0)
-			if('exit' in name):
-				self.closeMLSession()
-			else:
-				self.log(name)
-				numberouts = int(self.engine.nargout(name))
-				self.log('outs expected: ' + str(numberouts))
-				try:
-					self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
-				except Exception as e:
-					self.log('Error : ' + str(e))
-					variables = 'Error'
+		''' Runs a task by its name and using the sent parameters
+		Attributes
+		----------
+		name : string
+			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
+		args : string or Object
+			Path of the file to be used as input or the content of the file
+		'''
+		if(self.dynamic):
+			self.folderHandler.copyTasks(name)
+		self.engine.clear(nargout=0)			
+		addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'			
+		self.engine.eval(addpath,background = True,nargout=0)
+		if('exit' in name):
+			self.closeMLSession()
+		else:
+			self.log(name)
+			numberouts = int(self.engine.nargout(name))
+			self.log('outs expected: ' + str(numberouts))
+			try:
+				self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
+			except Exception as e:
+				self.log('Error : ' + str(e))
+				variables = 'Error'
 
 	def closeMLSession(self):
-			if(self.engine is not None):
-					self.joinMLSession()
-			try:
-					self.engine.eval('exit',nargout=0)
-			except:
-					print('Session Finished')
+		''' Closes a Matlab session using the self.engine or connecting to one
+		'''
+		if(self.engine is not None):
+				self.joinMLSession()
+		try:
+				self.engine.eval('exit',nargout=0)
+		except:
+				print('Session Finished')
 
 	def log(self,data):
-			if(self.verbose):
-				datetimestr = datetime.now()
-				print('[' + datetimestr.strftime("%X %x") + '] : ' + data)
+		''' Print data along with the time to be used in a log file or similar
+		Attributes
+		----------
+		data : string
+			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
+		'''
+		if(self.verbose):
+			datetimestr = datetime.now()
+			print('[' + datetimestr.strftime("%X %x") + '] : ' + data)
 
 
 def main(argv):

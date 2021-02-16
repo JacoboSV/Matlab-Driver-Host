@@ -15,7 +15,7 @@ def main(argv):
 		eng = future.result()
 		#eng.matlab.engine.shareEngine(nargout=0)
 		
-		timeout = time.time() + 60*60   # 5 minutes from now
+		timeout = time.time() + 24*60*60   # A day from now
 		while True:
 			test = 0
 			if test == 5 or time.time() > timeout:

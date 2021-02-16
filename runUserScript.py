@@ -31,23 +31,36 @@ class MatlabSessionLauncher(object):
 					self.sessionID = None
 		
 	def createMLSession(self):
+		''' Calls to matlabEngineLauncher.py to start a new Matlab session in the background
+		'''
 		P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
 
 	def searchSharedSession(self):
+		''' Looks for a valid running Matlab session in the computer, if present the engine is ready to be used in self.engine
+		'''
 		try:
 			return matlab.engine.find_matlab()
 		except:
 			return None
 
 	def runTask(self,name,args):
+		''' Calls to callTaskAsync.py to run a task or script in the background
+		Attributes
+		----------
+		name : string
+			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
+		args : string or Object
+			Path of the file to be used as input or the content of the file
+		'''
 		command = 'nohup python3.6 callTaskAsync.py \
 		-t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
 		> {5}/log.txt 2>&1 &' 
-		#print(command.format(name,args,self.sessionID,self.taskID,self.resultsFolder,self.resultsFolder))
 		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder))
 		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder), shell=True)
 
 	def closeMLSession(self):
+		''' Closes a Matlab session using the self.engine or connecting to one
+		'''
 		if(self.engine is not None):
 			self.joinMLSession()
 		try:
@@ -56,7 +69,13 @@ class MatlabSessionLauncher(object):
 			print('Session Finished')
 					
 	def killTaskWithID(self,kill):
-		fileName = self.folderHandler.rootRunFolder + self.folderHandler.prefix + kill + "/kill.txt"
+		''' Kills a task or script running in the background using its ID (an integer number)
+		Attributes
+		----------
+		kill : string or number
+			ID of the task to kill
+		'''
+		fileName = self.folderHandler.rootRunFolder + self.folderHandler.prefix + str(kill) + "/kill.txt"
 		try:
 			file = open(fileName,'x')
 		except:
@@ -65,12 +84,24 @@ class MatlabSessionLauncher(object):
 		file.write('Task cancelled at ' + datetimestr.strftime("%X %x"))
 	
 	def locateParamsFile(self,params):
+		''' Locates the input file in the local folder and returns the path
+		Attributes
+		----------
+		params : string
+			Complete name or prefix to identify an input file
+		'''
 		for files in os.listdir('./'):
 			if(params in str(files)):
 				return files
 		return None
 	
 	def prepareTask2Run(self,task,params,dynamic = False):
+		''' Prepares a task or script to be executed, locates param file and prepares the folders
+		Attributes
+		----------
+		params : string
+			Complete name or prefix to identify an input file
+		'''
 		if(dynamic):
 			params = self.locateParamsFile(params)			
 		self.folderHandler.copyTasks(task)
