@@ -56,7 +56,7 @@ class MatlabSessionLauncher(object):
 		command = 'nohup python3.6 callTaskAsync.py \
 		-t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
 		> {5}/log.txt 2>&1 &' 
-		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder))
+		print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder))
 		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder), shell=True)
 
 	def closeMLSession(self):

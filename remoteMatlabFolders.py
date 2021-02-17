@@ -40,7 +40,6 @@ class remoteMatlabFolders(object):
 		self.runFolder = self.rootRunFolder+self.prefix+str(self.taskID)
 		self.resultsFolder = self.rootResultsFolder+self.prefix+str(self.taskID)
 		self.checkCreateFolders()
-		self.savePreStatus()
 	
 	
 	def _obtainNextPath2Save(self):
@@ -59,15 +58,6 @@ class remoteMatlabFolders(object):
 			path2Save = self.rootRunFolder+'ciemat'+str(taskID)
 		return taskID
 	
-	# def _createFolders(self):
-		
-		# self.runFolder = './Run/'+'ciemat'+str(self.taskID)
-		# self.resultsFolder = './Results/'+'ciemat'+str(self.taskID)
-		# if(not os.path.isdir(self.runFolder)):
-			# os.mkdir(self.runFolder)
-		# if(not os.path.isdir(self.resultsFolder)):
-			# os.mkdir(self.resultsFolder)
-	
 	def _makeSymLinks(self,src,dst):
 		''' Makes symbolic links to all the original files in the source folder
 		Attributes
@@ -80,7 +70,9 @@ class remoteMatlabFolders(object):
 		for root, dirs, files in os.walk(src):
 			for adir in dirs:
 				newfolder = os.path.join(root,adir).replace(src,dst)
-				os.mkdir(newfolder)
+				self._createFolder(newfolder)
+				#if(os.path.isdir(newfolder)):
+				#	os.mkdir(newfolder)
 			for afile in files:
 				newfile = os.path.join(root,afile).replace(src,dst)
 				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
@@ -104,17 +96,21 @@ class remoteMatlabFolders(object):
 		'''
 		os.symlink(os.path.abspath(params),os.path.abspath(self.runFolder+'/'+params))
 	
-	def savePreStatus(self):
+	def savePreStatus(self,location = None):
 		''' Makes a copy of the folder tree structure in the <runFolder> to check if something changes
 		'''
-		for dirpath,_,filenames in os.walk(self.runFolder):
+		if(location is None):
+			location = self.runFolder
+		for dirpath,_,filenames in os.walk(location):
 				for f in filenames:
 					self.preStatus.append(os.path.abspath(os.path.join(dirpath, f)))
 
-	def savePostStatus(self):
+	def savePostStatus(self, location = None):
 		''' Makes a copy of the folder tree structure in the <runFolder> to check if something changes
 		'''
-		for dirpath,_,filenames in os.walk(self.runFolder):
+		if(location is None):
+			location = self.runFolder
+		for dirpath,_,filenames in os.walk(location):
 				for f in filenames:
 					self.postStatus.append(os.path.abspath(os.path.join(dirpath, f)))
 	
@@ -138,7 +134,6 @@ class remoteMatlabFolders(object):
 	def moveNewFiles(self):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
 		'''
-		self.savePostStatus()
 		added = list(set(self.postStatus)-set(self.preStatus))
 
 		for newfile in added:
@@ -147,6 +142,14 @@ class remoteMatlabFolders(object):
 			if not os.path.exists(dstfolder):
 				os.makedirs(dstfolder)
 			shutil.copy(newfile,dstfile)
+			
+	def removeNewFiles(self):
+		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
+		'''
+		added = list(set(self.postStatus)-set(self.preStatus))
+		for newfile in added:
+			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
+			os.remove(newfile)
 			
 	def _zipOutputs(self):
 		''' Create a zip with all the files and folders inside the results folder

@@ -60,8 +60,12 @@ class MatlabTaskCaller(object):
 	def checkStatus(self):
 		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
 		'''
+		checkCounter = 10
 		while (not self.asyncTask.done()):
-			self.log('Checking and saving status...')
+			checkCounter = checkCounter + 1
+			if(checkCounter>10):
+				self.log('Checking and saving status...')
+				checkCounter = 0
 			self.updateStatus('running')
 			if(os.path.exists((self.folderHandler.runFolder+'/kill.txt'))):
 				self.log('Sending cancel signal to task...')
@@ -69,7 +73,7 @@ class MatlabTaskCaller(object):
 				self.updateStatus('canceled')
 				return
 			if(self.dynamic):
-				time.sleep(0.5)
+				time.sleep(0.1)
 			else:
 				time.sleep(10)
 		variables = self.asyncTask.result()
@@ -78,8 +82,11 @@ class MatlabTaskCaller(object):
 		self.log('Completed')
 		self.updateStatus('completed')
 		if(self.dynamic):
+			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
+			self.folderHandler.removeNewFiles()
 			return variables
 		else:
+			self.folderHandler.savePostStatus()
 			self.log('Saving outputs')
 			self.folderHandler.saveIO(variables,self.outIO)
 			self.folderHandler._zipOutputs()
@@ -118,11 +125,17 @@ class MatlabTaskCaller(object):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
+		self.taskName = name
+		self.engine.clear(nargout=0)
 		if(self.dynamic):
-			self.folderHandler.copyTasks(name)
-		self.engine.clear(nargout=0)			
-		addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'			
-		self.engine.eval(addpath,background = True,nargout=0)
+			#self.folderHandler.copyTasks(name)
+			self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+name))
+			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.rootTasksFolder+name)) + '")'
+			self.engine.eval(addpath,background = True,nargout=0)
+		else:
+			self.folderHandler.savePreStatus()
+			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'
+			self.engine.eval(addpath,background = True,nargout=0)
 		if('exit' in name):
 			self.closeMLSession()
 		else:
