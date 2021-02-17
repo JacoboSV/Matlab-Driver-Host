@@ -194,30 +194,30 @@ class remoteMatlabFolders(object):
 		else:
 			file.write(data)
 
-def main(argv):
-	ON_POSIX = 'posix' in sys.builtin_module_names
-	task = None
-	params = None
-	kill = None
-	try:
-		opts, args = getopt.getopt(argv,"ht:p:k:",["task=","params=","kill="])
-	except getopt.GetoptError:
-		sys.exit(2)
-	for opt, arg in opts:
-		if opt == '-h':
-			print('python remoteMatlabFolders -t <taskName> -p <parameters> -k <taskID to kill>')
-			sys.exit()
-		elif opt in ("-t", "--task"):
-			task = arg
-		elif opt in ("-p", "--params"):
-			params = arg
-		elif opt in ("-k", "--kill"):
-			kill = arg
+# def main(argv):
+	# ON_POSIX = 'posix' in sys.builtin_module_names
+	# task = None
+	# params = None
+	# kill = None
+	# try:
+		# opts, args = getopt.getopt(argv,"ht:p:k:",["task=","params=","kill="])
+	# except getopt.GetoptError:
+		# sys.exit(2)
+	# for opt, arg in opts:
+		# if opt == '-h':
+			# print('python remoteMatlabFolders -t <taskName> -p <parameters> -k <taskID to kill>')
+			# sys.exit()
+		# elif opt in ("-t", "--task"):
+			# task = arg
+		# elif opt in ("-p", "--params"):
+			# params = arg
+		# elif opt in ("-k", "--kill"):
+			# kill = arg
 					
-	session = remoteMatlabFolders()
-	session.copyTasks(task)
-	session.copyInputs(params)
+	# session = remoteMatlabFolders()
+	# session.copyTasks(task)
+	# session.copyInputs(params)
 
-if __name__ == "__main__":
-	main(sys.argv[1:])
+# if __name__ == "__main__":
+	# main(sys.argv[1:])
 	

@@ -14,11 +14,10 @@ from remoteMatlabFolders import remoteMatlabFolders
 class MatlabTaskCaller(object):
 
 	def __init__(self,taskID, path = None, runpath = None, dynamic = False, sessionID = None, verbose = False):
-			self.dynamic = dynamic			
+			self.dynamic = dynamic
 			self.verbose = verbose;
 			self.outIO = io.StringIO()
 			self.errIO = io.StringIO()
-			
 			self.folderHandler = remoteMatlabFolders(taskID)
 			self.taskID = self.folderHandler.taskID
 			self.preStatus = []
@@ -48,6 +47,8 @@ class MatlabTaskCaller(object):
 				self.log('Not available yet : ' + str(e))
 				time.sleep(10)
 				self.joinMLSession()
+	
+	@staticmethod
 	def searchSharedSession(self):
 		''' Looks for a valid running Matlab session in the computer, if present the engine is ready to be used in self.engine
 		'''
@@ -55,7 +56,7 @@ class MatlabTaskCaller(object):
 			return matlab.engine.find_matlab()
 		except:
 			return None	
-			
+
 	def checkStatus(self):
 		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
 		'''

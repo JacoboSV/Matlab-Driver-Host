@@ -29,7 +29,8 @@ class MatlabSessionLauncher(object):
 				else:
 					self.createMLSession();
 					self.sessionID = None
-		
+	
+	@staticmethod
 	def createMLSession(self):
 		''' Calls to matlabEngineLauncher.py to start a new Matlab session in the background
 		'''
