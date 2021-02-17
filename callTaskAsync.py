@@ -49,7 +49,7 @@ class MatlabTaskCaller(object):
 				self.joinMLSession()
 	
 	@staticmethod
-	def searchSharedSession(self):
+	def searchSharedSession():
 		''' Looks for a valid running Matlab session in the computer, if present the engine is ready to be used in self.engine
 		'''
 		try:

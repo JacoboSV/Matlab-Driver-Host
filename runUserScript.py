@@ -31,7 +31,7 @@ class MatlabSessionLauncher(object):
 					self.sessionID = None
 	
 	@staticmethod
-	def createMLSession(self):
+	def createMLSession():
 		''' Calls to matlabEngineLauncher.py to start a new Matlab session in the background
 		'''
 		P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
