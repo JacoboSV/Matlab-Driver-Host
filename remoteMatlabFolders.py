@@ -8,6 +8,8 @@ from subprocess import PIPE, Popen, STDOUT
 from datetime import datetime
 import shutil
 import zipfile
+import json
+import ast
 
 class remoteMatlabFolders(object):
 	"""
@@ -22,7 +24,7 @@ class remoteMatlabFolders(object):
 	rootResultsFolder : './Results/'
 	rootTasksFolder : './Tasks/'
 	prefix : String to be at the beginning of the ./Run/ folder
-	
+	taskID: Integer that identifies the running task
 
 	"""
 	def __init__(self, taskID = None,dynamic = False):
@@ -32,6 +34,7 @@ class remoteMatlabFolders(object):
 		self.rootRunFolder = './Run/'
 		self.rootResultsFolder = './Results/'
 		self.rootTasksFolder = './Tasks/'
+		self.rootTempFolder = './'
 		self.prefix = 'ciemat'
 		if(taskID is None):
 			self.taskID = self._obtainNextPath2Save()
@@ -39,9 +42,90 @@ class remoteMatlabFolders(object):
 			self.taskID = taskID
 		self.runFolder = self.rootRunFolder+self.prefix+str(self.taskID)
 		self.resultsFolder = self.rootResultsFolder+self.prefix+str(self.taskID)
-		self.checkCreateFolders()
+		#if(dynamic):
+		#	self.inputformat = self.readInputFormat()
+		#self.checkCreateFolders()
+	
+	def readInputFormat(self,task):
+		with open(os.path.join(self.rootTasksFolder,task)+'/inputformat.txt') as json_file:
+			self.inputformat = json.load(json_file)
+			return self.inputformat
+			
+	def readOutputFormat(self,task):
+		with open(os.path.join(self.rootTasksFolder,task)+'/outputformat.txt') as json_file:
+			self.outputformat = json.load(json_file)
+			return self.outputformat
+			
+	#def createInlineCommand(self,task):
+	
+	def readMatFile(self,path):
+		in_file = open(path, "rb") # opening for [r]eading as [b]inary
+		data = in_file.read()
+		in_file.close()
+		return data
+	
+	def populateOutData(self,data):
+		self.outputs = self.outputformat
+		self.outputs['data'] = data
+		return self.outputs
+	
+	def populateInData(self,data):
+		self.inputs = self.inputformat
+		self.inputs['data'] = data
+		return self.inputs
+	
+	def createInlineCommand(self,data = None):
+		if(data is None):
+			data = self.inputs['data']
+			dataIn = data.split(',')
+			#for i in range(len(dataIn)):
+				#dataIn[i] = self._evalTypes(dataIn[i])
+			return dataIn
+
+	def createMatFileCommand(self,params=None,task=None):
+		#print(params)
+		data = params['data']
+		if('.mat' in str(data)):
+			filename = self.locateParamsFile(data)
+			return filename
+		elif(data is None):
+			data = self.inputs['data']
+		#print(str(data))
+		#print(str(task))
+		filename = os.path.join(self.rootTasksFolder,task)+'/input_file.mat'
+		out_file = open(filename, "wb") # open for [w]riting as [b]inary
+		out_file.write(data)
+		out_file.close()
+		return filename
 	
 	
+	@staticmethod
+	def _evalTypes(val):
+		try:
+			val = ast.literal_eval(val)
+		except ValueError:
+			pass
+		return val
+
+	def locateFile(self,what,where):
+		for files in os.listdir(where):
+			#print(files)
+			if(what in str(files)):
+				return os.path.abspath(os.path.join(where,files))
+		return None
+
+	def locateParamsFile(self,params):
+		''' Locates the input file in the local folder and returns the path
+		Attributes
+		----------
+		params : string
+			Complete name or prefix to identify an input file
+		'''
+		for files in os.listdir(self.rootTempFolder):
+			if(params in str(files)):
+				return files
+		return None
+
 	def _obtainNextPath2Save(self):
 		''' Looks for a valid name to a new run folder
 		Attributes
@@ -150,15 +234,30 @@ class remoteMatlabFolders(object):
 		for newfile in added:
 			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
 			os.remove(newfile)
+		os.remove(self.zippedFile)
 			
-	def _zipOutputs(self):
+	def _zipOutputs(self,where=None):
 		''' Create a zip with all the files and folders inside the results folder
 		'''
-		zf = zipfile.ZipFile(self.resultsFolder+"/out.zip", "w")
-		for root, dirs, files in os.walk(self.resultsFolder):
+		if(where is None):
+			filepath = self.resultsFolder+"/out.zip"
+			resultfolder = self.resultsFolder
+		else:
+			filepath = where+"/out.zip"
+			resultfolder = where
+		zf = zipfile.ZipFile(filepath, "w")
+		for root, dirs, files in os.walk(resultfolder):
 			for file in files:
 				if(('out.zip' not in file) & ('log.txt' not in file)):
 					zf.write(os.path.join(root, file))
+		self.zippedFile = filepath
+		return filepath
+	
+	def bytesFromFile(self,filepath):
+		in_file = open(filepath, "rb") # opening for [r]eading as [b]inary
+		data = in_file.read()
+		in_file.close()
+		return data
 					
 	def saveIO(self,variables, outStream):
 		''' Saves all the new data, outputs and variables after the execution of the script/task

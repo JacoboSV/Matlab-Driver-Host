@@ -12,16 +12,30 @@ import shutil
 from remoteMatlabFolders import remoteMatlabFolders
 
 class MatlabTaskCaller(object):
+	"""
+	Class to call a task to be run in a running matlab engine. If the session is dynamic (expects results to be returned after a while) the file runs and clears the "run" folder. If the session is not dynamic, there would be created both, run and results folders. 
 
-	def __init__(self,taskID, path = None, runpath = None, dynamic = False, sessionID = None, verbose = False):
+	Attributes
+	----------
+	dynamic : Whether the script/task answer is expected or not. If false the outputs will be in a file
+	verbose : Whether the class logs all the steps in the process or not
+	outIO : Gathers the output of the engine when a task is running
+	errIO : Gathers the errors of the engine when a task is running, now is redirected to outIO
+	folderHandler : Handles the creation, inspection, updating and deleting of files (see remoteMatlabFolders.py)
+	taskID: Integer that identifies the running task
+
+	"""
+	def __init__(self,taskID, dynamic = False, sessionID = None, verbose = False):
 			self.dynamic = dynamic
 			self.verbose = verbose;
 			self.outIO = io.StringIO()
 			self.errIO = io.StringIO()
 			self.folderHandler = remoteMatlabFolders(taskID)
+			if(dynamic):
+				self.log('Dynamic Task')
+			else:
+				self.folderHandler.checkCreateFolders()
 			self.taskID = self.folderHandler.taskID
-			self.preStatus = []
-			self.postStatus = []
 			self.folderHandler.savePreStatus()
 			if(sessionID is not None):
 					self.log('Session defined')
@@ -83,8 +97,8 @@ class MatlabTaskCaller(object):
 		self.updateStatus('completed')
 		if(self.dynamic):
 			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
-			self.folderHandler.removeNewFiles()
-			return variables
+			outputs = self.formatOutputs(variables)
+			return outputs
 		else:
 			self.folderHandler.savePostStatus()
 			self.log('Saving outputs')
@@ -101,6 +115,29 @@ class MatlabTaskCaller(object):
 		'''
 		self.folderHandler._saveData(newStatus,'status'+str(self.taskID),'./')
 
+	def formatOutputs(self,data):
+		outForm = self.folderHandler.readOutputFormat(self.taskName)
+		if(outForm['format'] == "matlab"):
+			if(self.dynamic):
+				runfolder = str(self.folderHandler.rootTasksFolder+self.taskName)
+			else:
+				runfolder = self.folderHandler.runFolder
+			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
+			return self.folderHandler.populateOutData(self.folderHandler.readMatFile(path2file))
+		elif(outForm['format'] == "bundle"):
+			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
+			#self.folderHandler.saveIO(data,self.outIO)
+			filepath = self.folderHandler._zipOutputs(str(self.folderHandler.rootTasksFolder+self.taskName))
+			filebytes = self.folderHandler.bytesFromFile(filepath)
+			return self.folderHandler.populateOutData(filebytes)
+			
+		else:
+			print('Not Matlab nor bundle')
+			return None
+
+	def removeNewFiles(self):
+		self.folderHandler.removeNewFiles()
+
 	def killTask(self):
 		''' Kills a running task
 		'''
@@ -115,6 +152,15 @@ class MatlabTaskCaller(object):
 				self.log('Task cannot be cancelled, due to error :')
 				self.log(str(e))
 		self.log('User cancelled the task')
+		
+	def prepareParameters(self,params,task = None):
+		self.folderHandler.inputs = params
+		if(params['format'] == 'inline'):
+			return self.folderHandler.createInlineCommand()
+		elif(params['format'] == 'matlab'):
+			return self.folderHandler.createMatFileCommand(params,task)
+		else:
+			return 'Error, format is not of inline type'
 				
 	def runTask(self,name,args):
 		''' Runs a task by its name and using the sent parameters
@@ -143,7 +189,12 @@ class MatlabTaskCaller(object):
 			numberouts = int(self.engine.nargout(name))
 			self.log('outs expected: ' + str(numberouts))
 			try:
-				self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
+				#self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
+				if(isinstance(args,str)):
+					command = name + '("' + args + '")'
+				else:
+					command = name + '(' + ','.join(str(x) for x in args) + ')'
+				self.asyncTask = self.engine.eval(command, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
 			except Exception as e:
 				self.log('Error : ' + str(e))
 				variables = 'Error'
@@ -182,7 +233,7 @@ def main(argv):
 			sys.exit(2)
 	for opt, arg in opts:
 			if opt == '-h':
-					print('python callTaskAsync -t <taskName> -a <args> -s <sessionID> -v <verbose> -i <taskID> -p <path> -r <runFolder>')
+					print('python callTaskAsync -t <taskName> -a <args> -s <sessionID> -v <verbose> -i <taskID>')
 					sys.exit()
 			elif opt in ("-t", "--task"):
 					task = arg
@@ -194,12 +245,8 @@ def main(argv):
 					verbose = arg
 			elif opt in ("-i", "--taskID"):
 					taskID = arg
-			elif opt in ("-p", "--path"):
-					savepath = arg
-			elif opt in ("-r", "--runF"):
-					runpath = arg
 	
-	session = MatlabTaskCaller(taskID = taskID, path = savepath, runpath = runpath, sessionID = sessionID, verbose = verbose)
+	session = MatlabTaskCaller(taskID = taskID, sessionID = sessionID, verbose = verbose)
 	#session = MatlabTaskCaller(taskID = taskID, savepath, runpath,sessionID,verbose)
 	session.log('Task : ' + str(task) + ' and params : ' + str(params))
 	session.runTask(task, params)

@@ -9,11 +9,29 @@ from datetime import datetime
 from remoteMatlabFolders import remoteMatlabFolders
 
 class MatlabSessionLauncher(object):
+	"""
+	Class to call MatlabTaskCaller (see callTaskAsync.py) in a diferent process or to kill a running one. This class prepares the system to be used when the task is called. If there is no matlab session active, this class will run matlabEngineLauncher.py to create one. 
+
+	Attributes
+	----------
+	folderHandler : Handles the creation, inspection, updating and deleting of files (see remoteMatlabFolders.py)
+	taskID: Integer that identifies the running task
+	sessionID: Code that identifies the Matlab session that is running in the computer
+	
+	Methods
+	----------
+	createMLSession: Is a static method that can be used to start a Matlab session
+	runTask : Calls MatlabTaskCaller (see callTaskAsync.py) in a diferent process with the name and arguments of the task. There will be no return of values. 
+	searchSharedSession: Is a static method to look for a started Matlab session
+	closeMLSession: Connect to a known Matlab session to call the "exit" method of matlab
+	killTaskWithID: Kills a task or script running in the background using its ID
+	"""
 
 	def __init__(self,sessionID = None, kill = None):
 		if(kill is None):
 			self.folderHandler = remoteMatlabFolders()
 			self.taskID = self.folderHandler.taskID
+			self.folderHandler.checkCreateFolders()
 		else:
 			self.folderHandler = remoteMatlabFolders(taskID = kill)
 			self.taskID = self.folderHandler.taskID
@@ -36,7 +54,8 @@ class MatlabSessionLauncher(object):
 		'''
 		P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
 
-	def searchSharedSession(self):
+	@staticmethod
+	def searchSharedSession():
 		''' Looks for a valid running Matlab session in the computer, if present the engine is ready to be used in self.engine
 		'''
 		try:
@@ -54,10 +73,9 @@ class MatlabSessionLauncher(object):
 			Path of the file to be used as input or the content of the file
 		'''
 		command = 'nohup python3.6 callTaskAsync.py \
-		-t {0} -a {1} -s {2} -i {3} -r {4} -p {5} \
-		> {5}/log.txt 2>&1 &' 
-		print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder))
-		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.runFolder,self.folderHandler.resultsFolder), shell=True)
+		-t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 
+		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder))
+		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder), shell=True)
 
 	def closeMLSession(self):
 		''' Closes a Matlab session using the self.engine or connecting to one
