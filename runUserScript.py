@@ -109,18 +109,6 @@ class MatlabSessionLauncher(object):
 		datetimestr = datetime.now()
 		file.write('Task cancelled at ' + datetimestr.strftime("%X %x"))
 	
-	def locateParamsFile(self,params):
-		''' Locates the input file in the local folder and returns the path
-		Attributes
-		----------
-		params : string
-			Complete name or prefix to identify an input file
-		'''
-		for files in os.listdir('./'):
-			if(params in str(files)):
-				return files
-		return None
-	
 	def prepareTask2Run(self,task,params,dynamic = False):
 		''' Prepares a task or script to be executed, locates param file and prepares the folders
 		Attributes
@@ -128,10 +116,11 @@ class MatlabSessionLauncher(object):
 		params : string
 			Complete name or prefix to identify an input file
 		'''
-		if(dynamic):
-			params = self.locateParamsFile(params)			
+		params = self.folderHandler.locateParamsFile(params)
+		#print(params)
 		self.folderHandler.copyTasks(task)
 		self.folderHandler.copyInputs(params)
+		return params
 
 def main(argv):
 	ON_POSIX = 'posix' in sys.builtin_module_names
@@ -155,7 +144,7 @@ def main(argv):
 					
 	session = MatlabSessionLauncher(kill = kill)
 	if(task is not None):
-		session.prepareTask2Run(task,params)
+		params = session.prepareTask2Run(task,params)
 		session.runTask(task, params)
 		print(session.taskID)
 

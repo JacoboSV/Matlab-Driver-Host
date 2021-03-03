@@ -18,7 +18,6 @@ class remoteMatlabFolders(object):
 
 	Attributes
 	----------
-	dynamic : Whether the script/task answer is expected or not. If false the outputs will be in a file
 	preStatus : File tree before running the task
 	postStatus : File tree after running the task
 	rootRunFolder : './Run/'
@@ -28,14 +27,13 @@ class remoteMatlabFolders(object):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self, taskID = None,dynamic = False):
-		self.dynamic = dynamic
+	def __init__(self, taskID = None):
 		self.preStatus = []
 		self.postStatus = []
 		self.rootRunFolder = './Run/'
 		self.rootResultsFolder = './Results/'
 		self.rootTasksFolder = './Tasks/'
-		self.rootTempFolder = './'
+		self.rootTempFolder = './Temp/'
 		self.prefix = 'ciemat'
 		if(taskID is None):
 			self.taskID = self._obtainNextPath2Save()
@@ -43,27 +41,22 @@ class remoteMatlabFolders(object):
 			self.taskID = taskID
 		self.runFolder = self.rootRunFolder+self.prefix+str(self.taskID)
 		self.resultsFolder = self.rootResultsFolder+self.prefix+str(self.taskID)
-		#if(dynamic):
-		#	self.inputformat = self.readInputFormat()
-		#self.checkCreateFolders()
+	
+	def setRunFolder(self,newRunFolder):
+		self.runFolder = newRunFolder
+		
+	def setResultsFolder(self,newResultsFolder):
+		self.resultsFolder = newResultsFolder
 	
 	def readInputFormat(self,task):
-		with open(os.path.join(self.rootTasksFolder,task)+'/inputformat.txt') as json_file:
+		with open(self.runFolder+'/inputformat.txt') as json_file:
 			self.inputformat = json.load(json_file)
 			return self.inputformat
 			
 	def readOutputFormat(self,task):
-		with open(os.path.join(self.rootTasksFolder,task)+'/outputformat.txt') as json_file:
+		with open(self.runFolder+'/outputformat.txt') as json_file:
 			self.outputformat = json.load(json_file)
 			return self.outputformat
-			
-	#def createInlineCommand(self,task):
-	
-	# def readMatFile(self,path):
-		# in_file = open(path, "rb") # opening for [r]eading as [b]inary
-		# data = in_file.read()
-		# in_file.close()
-		# return data
 	
 	def populateOutData(self,data):
 		self.outputs = self.outputformat
@@ -79,12 +72,9 @@ class remoteMatlabFolders(object):
 		if(data is None):
 			data = self.inputs['data']
 			dataIn = data.split(',')
-			#for i in range(len(dataIn)):
-				#dataIn[i] = self._evalTypes(dataIn[i])
 			return dataIn
 
 	def createMatFileCommand(self,params=None,task=None):
-		#print(params)
 		data = params['data']
 		name = params['name']
 		if(name):
@@ -92,13 +82,10 @@ class remoteMatlabFolders(object):
 		else:
 			filename = None
 		if(filename is None):
-			#if(not isinstance(data, bytes)):
 			if(not data):
 				data = self.inputs['data']
-			#print(str(data))
-			#print(str(task))
-			filename = os.path.join(self.rootTasksFolder,task)+'/input_file.mat'
-			out_file = open(filename, "wb") # open for [w]riting as [b]inary
+			filename = self.runFolder+'/input_file.mat'
+			out_file = open(filename, "wb") 
 			out_file.write(base64.b64decode(data))
 			out_file.close()
 		return filename
@@ -113,7 +100,6 @@ class remoteMatlabFolders(object):
 
 	def locateFile(self,what,where):
 		for files in os.listdir(where):
-			#print(files)
 			if(what in str(files)):
 				return os.path.abspath(os.path.join(where,files))
 		return None
@@ -125,9 +111,11 @@ class remoteMatlabFolders(object):
 		params : string
 			Complete name or prefix to identify an input file
 		'''
-		for files in os.listdir(self.rootTempFolder):
+		temporalFolder = os.path.abspath(self.rootTempFolder)
+		#print(temporalFolder)
+		for files in os.listdir(temporalFolder):
 			if(params in str(files)):
-				return files
+				return os.path.abspath(os.path.join(temporalFolder,files))
 		return None
 
 	def _obtainNextPath2Save(self):
@@ -159,8 +147,6 @@ class remoteMatlabFolders(object):
 			for adir in dirs:
 				newfolder = os.path.join(root,adir).replace(src,dst)
 				self._createFolder(newfolder)
-				#if(os.path.isdir(newfolder)):
-				#	os.mkdir(newfolder)
 			for afile in files:
 				newfile = os.path.join(root,afile).replace(src,dst)
 				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
@@ -182,11 +168,12 @@ class remoteMatlabFolders(object):
 		params : string
 			Path to the input file
 		'''
-		os.symlink(os.path.abspath(params),os.path.abspath(self.runFolder+'/'+params))
+		os.symlink(params,os.path.abspath(self.runFolder+'/'+os.path.basename(params)))
 	
 	def savePreStatus(self,location = None):
 		''' Makes a copy of the folder tree structure in the <runFolder> to check if something changes
 		'''
+		
 		if(location is None):
 			location = self.runFolder
 		for dirpath,_,filenames in os.walk(location):
@@ -231,7 +218,10 @@ class remoteMatlabFolders(object):
 				os.makedirs(dstfolder)
 			if(newfile != dstfile):
 				shutil.copy(newfile,dstfile)
-			
+	
+	def cleanTempFiles(self):
+		os.remove('status'+str(self.taskID)+'.txt')
+	
 	def removeNewFiles(self):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
 		'''
@@ -240,21 +230,18 @@ class remoteMatlabFolders(object):
 			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
 			os.remove(newfile)
 		os.remove(self.zippedFile)
+		os.remove('status'+str(self.taskID)+'.txt')
 	
 	def _zipNewFiles(self,where):
 		added = list(set(self.postStatus)-set(self.preStatus))
 		filepath = where+"/out.zip"
 		zf = zipfile.ZipFile(filepath, "w")
-		#print(self.postStatus)
 		for newfile in added:
-			#if('out.zip' not in newfile):
-			#print(newfile)
 			zf.write(newfile,os.path.basename(newfile))
-			#zf.write(newfile)
 		self.zippedFile = filepath
 		return filepath
 	
-	def _zipOutputs(self,where=None):
+	def _zipOutputs(self,where=None, keepFolderTree = False):
 		''' Create a zip with all the files and folders inside the results folder
 		'''
 		if(where is None):
@@ -267,7 +254,10 @@ class remoteMatlabFolders(object):
 		for root, dirs, files in os.walk(resultfolder):
 			for file in files:
 				if(('out.zip' not in file) & ('log.txt' not in file)):
-					zf.write(os.path.join(root, file))
+					if(keepFolderTree):
+						zf.write(os.path.join(root, file),file)
+					else:
+						zf.write(os.path.join(root, file),os.path.basename(file))
 		self.zippedFile = filepath
 		return filepath
 	
@@ -275,9 +265,6 @@ class remoteMatlabFolders(object):
 		with open(filepath, 'rb') as f:
 			data = base64.b64encode(f.read())
 		datastring = data.decode('utf-8')
-		#in_file = open(filepath, "rb") # opening for [r]eading as [b]inary
-		#data = in_file.read()
-		#in_file.close()
 		return datastring
 					
 	def saveIO(self,variables, outStream):
@@ -289,11 +276,9 @@ class remoteMatlabFolders(object):
 		outStream : io.StringIO
 			Object containing all the outputs of the stdout pipe
 		'''
-		#self.savePostStatus()
 		self.moveNewFiles()
 		self.saveData(str(variables),'out',self.resultsFolder)
 		self.saveData(outStream,'matlabOut',self.resultsFolder)
-		#self.saveData(self.errIO,'errors',self.path2Save)
 
 
 	def saveData(self,data,name,path2save):
@@ -317,31 +302,3 @@ class remoteMatlabFolders(object):
 			file.write(dataread)
 		else:
 			file.write(data)
-
-# def main(argv):
-	# ON_POSIX = 'posix' in sys.builtin_module_names
-	# task = None
-	# params = None
-	# kill = None
-	# try:
-		# opts, args = getopt.getopt(argv,"ht:p:k:",["task=","params=","kill="])
-	# except getopt.GetoptError:
-		# sys.exit(2)
-	# for opt, arg in opts:
-		# if opt == '-h':
-			# print('python remoteMatlabFolders -t <taskName> -p <parameters> -k <taskID to kill>')
-			# sys.exit()
-		# elif opt in ("-t", "--task"):
-			# task = arg
-		# elif opt in ("-p", "--params"):
-			# params = arg
-		# elif opt in ("-k", "--kill"):
-			# kill = arg
-					
-	# session = remoteMatlabFolders()
-	# session.copyTasks(task)
-	# session.copyInputs(params)
-
-# if __name__ == "__main__":
-	# main(sys.argv[1:])
-	

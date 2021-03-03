@@ -25,7 +25,7 @@ class MatlabTaskCaller(object):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self,taskID, dynamic = False, sessionID = None, verbose = False):
+	def __init__(self,taskID, dynamic =False, sessionID = None, verbose = False):
 			self.dynamic = dynamic
 			self.verbose = verbose;
 			self.outIO = io.StringIO()
@@ -33,10 +33,8 @@ class MatlabTaskCaller(object):
 			self.folderHandler = remoteMatlabFolders(taskID)
 			if(dynamic):
 				self.log('Dynamic Task')
-			else:
-				self.folderHandler.checkCreateFolders()
+			self.folderHandler.checkCreateFolders()
 			self.taskID = self.folderHandler.taskID
-			self.folderHandler.savePreStatus()
 			if(sessionID is not None):
 					self.log('Session defined')
 					self.sessionID = sessionID
@@ -95,15 +93,16 @@ class MatlabTaskCaller(object):
 		self.engine.close('all')
 		self.log('Completed')
 		self.updateStatus('completed')
+		self.log('Saving outputs')
 		if(self.dynamic):
-			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
+			self.folderHandler.savePostStatus()
+			self.folderHandler.saveIO(variables,self.outIO)
 			outputs = self.formatOutputs(variables)
 			return outputs
 		else:
 			self.folderHandler.savePostStatus()
-			self.log('Saving outputs')
 			self.folderHandler.saveIO(variables,self.outIO)
-			self.folderHandler._zipOutputs()
+			self.folderHandler._zipOutputs(keepFolderTree = True)
 			return None
 
 	def updateStatus(self,newStatus):
@@ -113,21 +112,18 @@ class MatlabTaskCaller(object):
 		newStatus : string
 			New status to be logged in the status.txt file
 		'''
-		self.folderHandler.saveData(newStatus,'status'+str(self.taskID),'./')
+		
+		self.folderHandler.saveData(newStatus,'status'+str(self.taskID),self.folderHandler.rootTempFolder)
 
 	def formatOutputs(self,data):
 		outForm = self.folderHandler.readOutputFormat(self.taskName)
-		if(self.dynamic):
-			runfolder = str(self.folderHandler.rootTasksFolder+self.taskName)
-		else:
-			runfolder = self.folderHandler.runFolder
+		runfolder = self.folderHandler.runFolder
+		resultsfolder = self.folderHandler.resultsFolder
 		if(outForm['format'] == "matlab"):
 			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
 			return self.folderHandler.populateOutData(self.folderHandler.serializeFile(path2file))
 		elif(outForm['format'] == "bundle"):
-			self.folderHandler.saveData(str(data),'out',runfolder)
-			self.folderHandler.savePostStatus(runfolder)
-			filepath = self.folderHandler._zipNewFiles(runfolder)
+			filepath = self.folderHandler._zipOutputs()
 			filebytes = self.folderHandler.serializeFile(filepath)
 			return self.folderHandler.populateOutData(filebytes)
 			
@@ -154,9 +150,6 @@ class MatlabTaskCaller(object):
 		self.log('User cancelled the task')
 		
 	def prepareParameters(self,params,task = None):
-		
-		if(self.dynamic):
-			self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+task))
 		self.folderHandler.inputs = params
 		if(params['format'] == 'inline'):
 			return self.folderHandler.createInlineCommand()
@@ -177,18 +170,15 @@ class MatlabTaskCaller(object):
 		self.taskName = name
 		self.engine.clear(nargout=0)
 		if(self.dynamic):
-			#self.folderHandler.copyTasks(name)
-			#self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+name))
-			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.rootTasksFolder+name)) + '")'
-			self.engine.eval(addpath,background = True,nargout=0)
-		else:
-			#self.folderHandler.savePreStatus()
-			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'
-			self.engine.eval(addpath,background = True,nargout=0)
+			self.folderHandler.copyTasks(name)
+		self.folderHandler.savePreStatus()
+		self.log('Using user path: ' + str(str(self.folderHandler.runFolder)))
+		addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'
+		self.engine.eval(addpath,background = True,nargout=0)
+		self.log('Task : ' + str(name) + ' and params : ' + str(args))
 		if('exit' in name):
 			self.closeMLSession()
 		else:
-			self.log(name)
 			numberouts = int(self.engine.nargout(name))
 			self.log('outs expected: ' + str(numberouts))
 			try:
@@ -250,8 +240,6 @@ def main(argv):
 					taskID = arg
 	
 	session = MatlabTaskCaller(taskID = taskID, sessionID = sessionID, verbose = verbose)
-	#session = MatlabTaskCaller(taskID = taskID, savepath, runpath,sessionID,verbose)
-	session.log('Task : ' + str(task) + ' and params : ' + str(params))
 	session.runTask(task, params)
 	session.checkStatus()
 

@@ -43,7 +43,7 @@ def nodo2(content):
 	parameters = session.prepareParameters(content,task)
 	session.runTask(task, parameters)
 	response = session.checkStatus()
-	session.removeNewFiles()
+	#session.removeNewFiles()
 	return response
 
 # def isMatlabSession():
@@ -61,17 +61,17 @@ if __name__ == "__main__":
 	response = nodo1(ins)
 	print(json.dumps(response, indent=4, sort_keys=True)[0:50] + '(...)')
 	print(json.dumps(response, indent=4, sort_keys=True)[-50:])
-	dataout = base64.b64decode(response['data'])
-	out_file = open("out-file.mat", "wb")
-	out_file.write(dataout)
-	out_file.close()
+	#dataout = base64.b64decode(response['data'])
+	#out_file = open("out-file.mat", "wb")
+	#out_file.write(dataout)
+	#out_file.close()
 	
 	result = nodo2(response)
 	#print(result)
 	print(json.dumps(result, indent=4, sort_keys=True)[0:50] + '(...)')
 	print(json.dumps(result, indent=4, sort_keys=True)[-50:])
 	
-	dataout = base64.b64decode(result['data'])
-	out_file = open("out-file.zip", "wb")
-	out_file.write(dataout)
-	out_file.close()
+	#dataout = base64.b64decode(result['data'])
+	#out_file = open("out-file.zip", "wb")
+	#out_file.write(dataout)
+	#out_file.close()
