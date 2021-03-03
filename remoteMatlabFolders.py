@@ -10,6 +10,7 @@ import shutil
 import zipfile
 import json
 import ast
+import base64
 
 class remoteMatlabFolders(object):
 	"""
@@ -58,11 +59,11 @@ class remoteMatlabFolders(object):
 			
 	#def createInlineCommand(self,task):
 	
-	def readMatFile(self,path):
-		in_file = open(path, "rb") # opening for [r]eading as [b]inary
-		data = in_file.read()
-		in_file.close()
-		return data
+	# def readMatFile(self,path):
+		# in_file = open(path, "rb") # opening for [r]eading as [b]inary
+		# data = in_file.read()
+		# in_file.close()
+		# return data
 	
 	def populateOutData(self,data):
 		self.outputs = self.outputformat
@@ -85,19 +86,21 @@ class remoteMatlabFolders(object):
 	def createMatFileCommand(self,params=None,task=None):
 		#print(params)
 		data = params['data']
-		if('.mat' in str(data)):
-			filename = self.locateParamsFile(data)
+		name = params['name']
+		if(name):
+			filename = self.locateParamsFile(name)
+		else:
+			filename = None
+		if(filename is None):
+			if(not isinstance(data, bytes)):
+				data = self.inputs['data']
+			#print(str(data))
+			#print(str(task))
+			filename = os.path.join(self.rootTasksFolder,task)+'/input_file.mat'
+			out_file = open(filename, "wb") # open for [w]riting as [b]inary
+			out_file.write(base64.b64decode(data))
+			out_file.close()
 			return filename
-		elif(data is None):
-			data = self.inputs['data']
-		#print(str(data))
-		#print(str(task))
-		filename = os.path.join(self.rootTasksFolder,task)+'/input_file.mat'
-		out_file = open(filename, "wb") # open for [w]riting as [b]inary
-		out_file.write(data)
-		out_file.close()
-		return filename
-	
 	
 	@staticmethod
 	def _evalTypes(val):
@@ -253,11 +256,14 @@ class remoteMatlabFolders(object):
 		self.zippedFile = filepath
 		return filepath
 	
-	def bytesFromFile(self,filepath):
-		in_file = open(filepath, "rb") # opening for [r]eading as [b]inary
-		data = in_file.read()
-		in_file.close()
-		return data
+	def serializeFile(self,filepath):
+		with open(filepath, 'rb') as f:
+			data = base64.b64encode(f.read())
+		datastring = data.decode('utf-8')
+		#in_file = open(filepath, "rb") # opening for [r]eading as [b]inary
+		#data = in_file.read()
+		#in_file.close()
+		return datastring
 					
 	def saveIO(self,variables, outStream):
 		''' Saves all the new data, outputs and variables after the execution of the script/task

@@ -59,5 +59,9 @@ if __name__ == "__main__":
 	image = '{"format":"inline","name":"","data":"\'C15a\',0.001,65988,6"}'
 	ins = json.loads(image)
 	response = nodo1(ins)
+	print(json.dumps(response, indent=4, sort_keys=True)[0:50] + '(...)')
+	print(json.dumps(response, indent=4, sort_keys=True)[-50:])
 	result = nodo2(response)
-	print(result)	
+	#print(result)
+	print(json.dumps(result, indent=4, sort_keys=True)[0:50] + '(...)')
+	print(json.dumps(result, indent=4, sort_keys=True)[-50:])

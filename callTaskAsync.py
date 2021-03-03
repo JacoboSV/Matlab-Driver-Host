@@ -123,12 +123,12 @@ class MatlabTaskCaller(object):
 			else:
 				runfolder = self.folderHandler.runFolder
 			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
-			return self.folderHandler.populateOutData(self.folderHandler.readMatFile(path2file))
+			return self.folderHandler.populateOutData(self.folderHandler.serializeFile(path2file))
 		elif(outForm['format'] == "bundle"):
 			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
 			#self.folderHandler.saveIO(data,self.outIO)
 			filepath = self.folderHandler._zipOutputs(str(self.folderHandler.rootTasksFolder+self.taskName))
-			filebytes = self.folderHandler.bytesFromFile(filepath)
+			filebytes = self.folderHandler.serializeFile(filepath)
 			return self.folderHandler.populateOutData(filebytes)
 			
 		else:

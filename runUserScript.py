@@ -28,6 +28,7 @@ class MatlabSessionLauncher(object):
 	"""
 
 	def __init__(self,sessionID = None, kill = None):
+		self.os = sys.platform
 		if(kill is None):
 			self.folderHandler = remoteMatlabFolders()
 			self.taskID = self.folderHandler.taskID
@@ -52,7 +53,11 @@ class MatlabSessionLauncher(object):
 	def createMLSession():
 		''' Calls to matlabEngineLauncher.py to start a new Matlab session in the background
 		'''
-		P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
+		if('linux' in sys.platform):
+			P = Popen('nohup python3.6 matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
+		else:
+			P = Popen('python matlabEngineLauncher.py > MLSession.log 2>&1 &', shell=True)
+
 
 	@staticmethod
 	def searchSharedSession():
@@ -72,8 +77,10 @@ class MatlabSessionLauncher(object):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
-		command = 'nohup python3.6 callTaskAsync.py \
-		-t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 
+		if('linux' in sys.platform):
+			command = 'nohup python3.6 callTaskAsync.py -t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 
+		else:
+			command = 'python callTaskAsync.py -t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 		
 		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder))
 		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder), shell=True)
 
