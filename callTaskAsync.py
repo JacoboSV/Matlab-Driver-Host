@@ -113,21 +113,21 @@ class MatlabTaskCaller(object):
 		newStatus : string
 			New status to be logged in the status.txt file
 		'''
-		self.folderHandler._saveData(newStatus,'status'+str(self.taskID),'./')
+		self.folderHandler.saveData(newStatus,'status'+str(self.taskID),'./')
 
 	def formatOutputs(self,data):
 		outForm = self.folderHandler.readOutputFormat(self.taskName)
+		if(self.dynamic):
+			runfolder = str(self.folderHandler.rootTasksFolder+self.taskName)
+		else:
+			runfolder = self.folderHandler.runFolder
 		if(outForm['format'] == "matlab"):
-			if(self.dynamic):
-				runfolder = str(self.folderHandler.rootTasksFolder+self.taskName)
-			else:
-				runfolder = self.folderHandler.runFolder
 			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
 			return self.folderHandler.populateOutData(self.folderHandler.serializeFile(path2file))
 		elif(outForm['format'] == "bundle"):
-			self.folderHandler.savePostStatus(str(self.folderHandler.rootTasksFolder+self.taskName))
-			#self.folderHandler.saveIO(data,self.outIO)
-			filepath = self.folderHandler._zipOutputs(str(self.folderHandler.rootTasksFolder+self.taskName))
+			self.folderHandler.saveData(str(data),'out',runfolder)
+			self.folderHandler.savePostStatus(runfolder)
+			filepath = self.folderHandler._zipNewFiles(runfolder)
 			filebytes = self.folderHandler.serializeFile(filepath)
 			return self.folderHandler.populateOutData(filebytes)
 			
@@ -154,6 +154,9 @@ class MatlabTaskCaller(object):
 		self.log('User cancelled the task')
 		
 	def prepareParameters(self,params,task = None):
+		
+		if(self.dynamic):
+			self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+task))
 		self.folderHandler.inputs = params
 		if(params['format'] == 'inline'):
 			return self.folderHandler.createInlineCommand()
@@ -175,11 +178,11 @@ class MatlabTaskCaller(object):
 		self.engine.clear(nargout=0)
 		if(self.dynamic):
 			#self.folderHandler.copyTasks(name)
-			self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+name))
+			#self.folderHandler.savePreStatus(str(self.folderHandler.rootTasksFolder+name))
 			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.rootTasksFolder+name)) + '")'
 			self.engine.eval(addpath,background = True,nargout=0)
 		else:
-			self.folderHandler.savePreStatus()
+			#self.folderHandler.savePreStatus()
 			addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'
 			self.engine.eval(addpath,background = True,nargout=0)
 		if('exit' in name):
@@ -196,7 +199,7 @@ class MatlabTaskCaller(object):
 					command = name + '(' + ','.join(str(x) for x in args) + ')'
 				self.asyncTask = self.engine.eval(command, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
 			except Exception as e:
-				self.log('Error : ' + str(e))
+				print('Error : ' + str(e))
 				variables = 'Error'
 
 	def closeMLSession(self):

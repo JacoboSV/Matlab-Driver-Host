@@ -92,7 +92,8 @@ class remoteMatlabFolders(object):
 		else:
 			filename = None
 		if(filename is None):
-			if(not isinstance(data, bytes)):
+			#if(not isinstance(data, bytes)):
+			if(not data):
 				data = self.inputs['data']
 			#print(str(data))
 			#print(str(task))
@@ -100,7 +101,7 @@ class remoteMatlabFolders(object):
 			out_file = open(filename, "wb") # open for [w]riting as [b]inary
 			out_file.write(base64.b64decode(data))
 			out_file.close()
-			return filename
+		return filename
 	
 	@staticmethod
 	def _evalTypes(val):
@@ -228,7 +229,8 @@ class remoteMatlabFolders(object):
 			dstfolder = os.path.split(dstfile)[0]
 			if not os.path.exists(dstfolder):
 				os.makedirs(dstfolder)
-			shutil.copy(newfile,dstfile)
+			if(newfile != dstfile):
+				shutil.copy(newfile,dstfile)
 			
 	def removeNewFiles(self):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
@@ -238,7 +240,20 @@ class remoteMatlabFolders(object):
 			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
 			os.remove(newfile)
 		os.remove(self.zippedFile)
-			
+	
+	def _zipNewFiles(self,where):
+		added = list(set(self.postStatus)-set(self.preStatus))
+		filepath = where+"/out.zip"
+		zf = zipfile.ZipFile(filepath, "w")
+		#print(self.postStatus)
+		for newfile in added:
+			#if('out.zip' not in newfile):
+			#print(newfile)
+			zf.write(newfile,os.path.basename(newfile))
+			#zf.write(newfile)
+		self.zippedFile = filepath
+		return filepath
+	
 	def _zipOutputs(self,where=None):
 		''' Create a zip with all the files and folders inside the results folder
 		'''
@@ -274,13 +289,14 @@ class remoteMatlabFolders(object):
 		outStream : io.StringIO
 			Object containing all the outputs of the stdout pipe
 		'''
-		self.savePostStatus()
+		#self.savePostStatus()
 		self.moveNewFiles()
-		self._saveData(str(variables),'out',self.resultsFolder)
-		self._saveData(outStream,'matlabOut',self.resultsFolder)
-		#self._saveData(self.errIO,'errors',self.path2Save)
+		self.saveData(str(variables),'out',self.resultsFolder)
+		self.saveData(outStream,'matlabOut',self.resultsFolder)
+		#self.saveData(self.errIO,'errors',self.path2Save)
 
-	def _saveData(self,data,name,path2save):
+
+	def saveData(self,data,name,path2save):
 		''' Saves in files the information in data as <path2save>/name.txt
 		----------
 		data : string or io.StringIO

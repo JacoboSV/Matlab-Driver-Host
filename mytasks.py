@@ -31,7 +31,7 @@ def label(content):
 def nodo1(content):
 	task = 'procesado'
 	session = MatlabTaskCaller(None, dynamic = True)
-	parameters = session.prepareParameters(content)
+	parameters = session.prepareParameters(content,task)
 	session.runTask(task, parameters)
 	response = session.checkStatus()
 	#session.removeNewFiles()
@@ -46,13 +46,13 @@ def nodo2(content):
 	session.removeNewFiles()
 	return response
 
-def isMatlabSession():
+# def isMatlabSession():
 
-	if(not MatlabTaskCaller.searchSharedSession()):
-		#print('Starting Matlab Session')
-		MatlabSessionLauncher.createMLSession()	
-	#else:
-		#print('Not needed to start a Matlab Session')
+	# if(not MatlabTaskCaller.searchSharedSession()):
+		# #print('Starting Matlab Session')
+		# MatlabSessionLauncher.createMLSession()	
+	# #else:
+		# #print('Not needed to start a Matlab Session')
 
 if __name__ == "__main__":
 	#isMatlabSession()	
@@ -61,7 +61,17 @@ if __name__ == "__main__":
 	response = nodo1(ins)
 	print(json.dumps(response, indent=4, sort_keys=True)[0:50] + '(...)')
 	print(json.dumps(response, indent=4, sort_keys=True)[-50:])
+	dataout = base64.b64decode(response['data'])
+	out_file = open("out-file.mat", "wb")
+	out_file.write(dataout)
+	out_file.close()
+	
 	result = nodo2(response)
 	#print(result)
 	print(json.dumps(result, indent=4, sort_keys=True)[0:50] + '(...)')
 	print(json.dumps(result, indent=4, sort_keys=True)[-50:])
+	
+	dataout = base64.b64decode(result['data'])
+	out_file = open("out-file.zip", "wb")
+	out_file.write(dataout)
+	out_file.close()
