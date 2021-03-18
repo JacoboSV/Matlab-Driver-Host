@@ -142,7 +142,6 @@ class PythonTaskCaller(TaskCaller):
 		
 	def prepareParameters(self,params,task = None):
 		self.log('Params format: ' + str(params['format']))
-		#print('Params format: ' + str(params['format']))
 		self.folderHandler.inputs = params
 		if(params['format'] == 'inline'):
 			return self.folderHandler.createInlineCommand()
@@ -181,20 +180,16 @@ class PythonTaskCaller(TaskCaller):
 		
 		self.folderHandler.savePreStatus()
 		self.log('Task : ' + str(name) + ' and params : ' + str(args))
-		#print('Module : ' + str(lib) + ' and meth : ' + meth)
-		#print('Params : ' + str(args[0:100]))
-		#print('Params : ' + str(args[-100:]))
-		# try:
-		prevDir = os.getcwd()
-		os.chdir(self.folderHandler.runFolder)
-		self.asyncTask = getattr(module, meth)(args)
-		os.chdir(prevDir)
-		self.asyncTask = self.gatherResponse(self.asyncTask)
-		
-		return self.asyncTask
-		# except Exception as e:
-			# print('Error in method call: ' + str(e))
-			# return None
+		try:
+			prevDir = os.getcwd()
+			os.chdir(self.folderHandler.runFolder)
+			self.asyncTask = getattr(module, meth)(args)
+			os.chdir(prevDir)
+			self.asyncTask = self.gatherResponse(self.asyncTask)
+			return self.asyncTask
+		except Exception as e:
+			print('Error in method call: ' + str(e))
+			return None
 				
 	def log(self,data):
 		''' Print data along with the time to be used in a log file or similar
@@ -221,15 +216,6 @@ class MatlabTaskCaller(TaskCaller):
 
 	"""
 	def __init__(self,taskID, dynamic =False, sessionID = None, verbose = False):
-			# self.dynamic = dynamic
-			# self.verbose = verbose;
-			# self.outIO = io.StringIO()
-			# self.errIO = io.StringIO()
-			# self.folderHandler = remoteFolders(taskID)
-			# if(dynamic):
-				# self.log('Dynamic Task')
-			# self.folderHandler.checkCreateFolders()
-			# self.taskID = self.folderHandler.taskID
 			super().__init__(taskID, dynamic, verbose)
 			if(sessionID is not None):
 					self.log('Session defined')
@@ -244,8 +230,10 @@ class MatlabTaskCaller(TaskCaller):
 							self.joinMLSession()
 					else:
 							sessionLauncher.createMLSession()
-							#print('No shared sessions')
-							#raise Exception("No shared sessions, last session expired")
+							while(searchSharedSession() is None):
+								time.sleep(10)
+								self.sessionID = self.searchSharedSession()[0]
+							self.joinMLSession()
 
 	def joinMLSession(self):
 		''' Connects to the a Matlab session,
@@ -310,7 +298,6 @@ class MatlabTaskCaller(TaskCaller):
 			New status to be logged in the status.txt file
 		'''
 		super().updateStatus(newStatus)
-		# self.folderHandler.saveData(newStatus,'status'+str(self.taskID),self.folderHandler.rootTempFolder)
 
 	def formatOutputs(self,data):
 		outForm = self.folderHandler.readOutputFormat(self.taskName)
@@ -335,7 +322,6 @@ class MatlabTaskCaller(TaskCaller):
 
 	def removeNewFiles(self):
 		super().removeNewFiles()
-		#self.folderHandler.removeNewFiles()
 
 	def killTask(self):
 		''' Kills a running task
@@ -388,7 +374,6 @@ class MatlabTaskCaller(TaskCaller):
 			numberouts = int(self.engine.nargout(name))
 			self.log('outs expected: ' + str(numberouts))
 			try:
-				#self.asyncTask = self.engine.feval(name,args, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
 				if(isinstance(args,str)):
 					if("'" in args):
 						command = name + '("' + args + '")'
@@ -419,9 +404,6 @@ class MatlabTaskCaller(TaskCaller):
 			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
 		'''
 		super().log(data)
-		# if(self.verbose):
-			# datetimestr = datetime.now()
-			# print('[' + datetimestr.strftime("%X %x") + '] : ' + data)
 
 
 def main(argv):

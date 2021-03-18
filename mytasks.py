@@ -27,19 +27,6 @@ def label(content):
 	response = session.checkStatus()
 	return response
 
-# @app.task
-# def nodo1(content):
-	# task = 'procesado'
-	# session = MatlabTaskCaller(None, dynamic = True)
-	# if(isinstance(content,dict)):
-		# ins = content
-	# else:
-		# ins = json.loads(content)
-	# parameters = session.prepareParameters(ins,task)
-	# session.runTask(task, parameters)
-	# response = session.checkStatus()
-	# return response
-
 @app.task
 def nodoMatlab(taskname,content):
 	if(taskname is None):
@@ -64,36 +51,12 @@ def nodoPython(taskname,content):
 			ins = content
 		else:
 			ins = json.loads(content)
-		#response = taskname(content)
 		parameters = session.prepareParameters(ins,taskname)
 		response = session.runTask(taskname, parameters)
-		#response = session.checkStatus()
 	return response
 
-# @app.task
-# def nodo2(content):
-	# task = 'maximo'
-	# session = MatlabTaskCaller(None, dynamic = True)
-	# #print(content)
-	# if(isinstance(content,dict)):
-		# ins = content
-	# else:
-		# ins = json.loads(content)
-	# parameters = session.prepareParameters(ins,task)
-	# session.runTask(task, parameters)
-	# response = session.checkStatus()
-	# return response
-
-# def isMatlabSession():
-
-	# if(not MatlabTaskCaller.searchSharedSession()):
-		# #print('Starting Matlab Session')
-		# MatlabSessionLauncher.createMLSession()	
-	# #else:
-		# #print('Not needed to start a Matlab Session')
 
 if __name__ == "__main__":
-	#isMatlabSession()	
 	image = '{"format":"inline","name":"","data":"\'C15a\',0.001,65988,6"}'
 	ins = json.loads(image)
 	response = nodoMatlab('remuestrea',ins)
