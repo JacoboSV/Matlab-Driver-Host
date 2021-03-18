@@ -6,15 +6,15 @@ import io
 import time
 from subprocess import PIPE, Popen, STDOUT
 from datetime import datetime
-from remoteMatlabFolders import remoteMatlabFolders
+from remoteFolders import remoteFolders
 
-class MatlabSessionLauncher(object):
+class sessionLauncher(object):
 	"""
 	Class to call MatlabTaskCaller (see callTaskAsync.py) in a diferent process or to kill a running one. This class prepares the system to be used when the task is called. If there is no matlab session active, this class will run matlabEngineLauncher.py to create one. 
 
 	Attributes
 	----------
-	folderHandler : Handles the creation, inspection, updating and deleting of files (see remoteMatlabFolders.py)
+	folderHandler : Handles the creation, inspection, updating and deleting of files (see remoteFolders.py)
 	taskID: Integer that identifies the running task
 	sessionID: Code that identifies the Matlab session that is running in the computer
 	
@@ -27,27 +27,31 @@ class MatlabSessionLauncher(object):
 	killTaskWithID: Kills a task or script running in the background using its ID
 	"""
 
-	def __init__(self,sessionID = None, kill = None):
+	def __init__(self,sessionID = None, kill = None, ismatlab = True):
 		self.os = sys.platform
+		self.isML = ismatlab
 		if(kill is None):
-			self.folderHandler = remoteMatlabFolders()
+			self.folderHandler = remoteFolders()
 			self.taskID = self.folderHandler.taskID
 			self.folderHandler.checkCreateFolders()
 		else:
-			self.folderHandler = remoteMatlabFolders(taskID = kill)
+			self.folderHandler = remoteFolders(taskID = kill)
 			self.taskID = self.folderHandler.taskID
-		if(sessionID is not None):
-			self.sessionID = sessionID
-		else:
-			if(kill is not None):
-				self.killTaskWithID(kill)
+		if(self.isML):
+			if(sessionID is not None):
+				self.sessionID = sessionID
 			else:
-				availableSessions = self.searchSharedSession()
-				if(len(availableSessions)>0):
-					self.sessionID = availableSessions[0]
+				if(kill is not None):
+					self.killTaskWithID(kill)
 				else:
-					self.createMLSession();
-					self.sessionID = None
+					availableSessions = self.searchSharedSession()
+					if(len(availableSessions)>0):
+						self.sessionID = availableSessions[0]
+					else:
+						self.createMLSession();
+						self.sessionID = None
+		else:
+			self.sessionID = None
 	
 	@staticmethod
 	def createMLSession():
@@ -77,12 +81,14 @@ class MatlabSessionLauncher(object):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
+		
 		if('linux' in sys.platform):
-			command = 'nohup python3.6 callTaskAsync.py -t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 
+			command = 'nohup python3.6 callTaskAsync.py -t {0} -a {1} -s {2} -i {3} -m {4} > {5}/log.txt 2>&1 &' 
 		else:
-			command = 'python callTaskAsync.py -t {0} -a {1} -s {2} -i {3} > {4}/log.txt 2>&1 &' 		
-		#print(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder))
-		P = Popen(command.format(name,args,self.sessionID,self.taskID,self.folderHandler.resultsFolder), shell=True)
+			command = 'python callTaskAsync.py -t {0} -a {1} -s {2} -i {3} -m {4} > {5}/log.txt 2>&1 &' 		
+		runCommand = command.format(name,args,self.sessionID,self.taskID,self.isML,self.folderHandler.resultsFolder)
+		#print(runCommand)
+		P = Popen(runCommand, shell=True)
 
 	def closeMLSession(self):
 		''' Closes a Matlab session using the self.engine or connecting to one
@@ -117,8 +123,14 @@ class MatlabSessionLauncher(object):
 			Complete name or prefix to identify an input file
 		'''
 		params = self.folderHandler.locateParamsFile(params)
-		#print(params)
-		self.folderHandler.copyTasks(task)
+		if(self.isML):
+			meth = task
+			lib = task
+		else:
+			moduleNmethod = task.split('.')
+			lib = moduleNmethod[0]
+			meth = moduleNmethod[1]
+		self.folderHandler.copyTasks(lib)
 		self.folderHandler.copyInputs(params)
 		return params
 
@@ -127,13 +139,14 @@ def main(argv):
 	task = None
 	params = None
 	kill = None
+	ismatlab = True
 	try:
-		opts, args = getopt.getopt(argv,"ht:p:k:",["task=","params=","kill="])
+		opts, args = getopt.getopt(argv,"ht:p:k:m:",["task=","params=","kill=","isMatlab="])
 	except getopt.GetoptError:
 		sys.exit(2)
 	for opt, arg in opts:
 		if opt == '-h':
-			print('python connectToMatlabSession -t <taskName> -p <parameters> -k <taskID to kill>')
+			print('python runUserScript -t <taskName> -p <parameters> -k <taskID to kill> -m <Whether is matlab or not>')
 			sys.exit()
 		elif opt in ("-t", "--task"):
 			task = arg
@@ -141,8 +154,10 @@ def main(argv):
 			params = arg
 		elif opt in ("-k", "--kill"):
 			kill = arg
+		elif opt in ("-m", "--matlab"):
+			ismatlab = (arg == 'True')
 					
-	session = MatlabSessionLauncher(kill = kill)
+	session = sessionLauncher(kill = kill, ismatlab = ismatlab)
 	if(task is not None):
 		params = session.prepareTask2Run(task,params)
 		session.runTask(task, params)

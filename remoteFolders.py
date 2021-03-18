@@ -12,9 +12,9 @@ import json
 import ast
 import base64
 
-class remoteMatlabFolders(object):
+class remoteFolders(object):
 	"""
-	Class to manage the folder creation and file management when running matlab script in the engine
+	Class to manage the folder creation and file management when running a script remotely
 
 	Attributes
 	----------
@@ -55,8 +55,16 @@ class remoteMatlabFolders(object):
 			
 	def readOutputFormat(self,task):
 		with open(self.runFolder+'/outputformat.txt') as json_file:
-			self.outputformat = json.load(json_file)
-			return self.outputformat
+			outputFormats = json.load(json_file)
+			if('.' in task):
+				module_method = task.split('.')
+				lib = module_method[0]
+				meth = module_method[1]
+				self.outputformat = outputFormats['formats'][meth]
+				return outputFormats['formats'][meth]
+			else:
+				self.outputformat = outputFormats
+				return self.outputformat
 	
 	def populateOutData(self,data):
 		self.outputs = self.outputformat
@@ -88,7 +96,7 @@ class remoteMatlabFolders(object):
 			out_file = open(filename, "wb") 
 			out_file.write(base64.b64decode(data))
 			out_file.close()
-		return filename
+		return os.path.abspath(filename)
 	
 	@staticmethod
 	def _evalTypes(val):
@@ -116,6 +124,10 @@ class remoteMatlabFolders(object):
 		for files in os.listdir(temporalFolder):
 			if(params in str(files)):
 				return os.path.abspath(os.path.join(temporalFolder,files))
+		#If not there, try in the main folder
+		for files in os.listdir('./'):
+			if(params in str(files)):
+				return os.path.abspath(os.path.join('./',files))
 		return None
 
 	def _obtainNextPath2Save(self):
@@ -272,13 +284,13 @@ class remoteMatlabFolders(object):
 		Attributes
 		----------
 		variables : object
-			The object that is returned by matlab engine
+			The object that is returned by the task
 		outStream : io.StringIO
 			Object containing all the outputs of the stdout pipe
 		'''
 		self.moveNewFiles()
 		self.saveData(str(variables),'out',self.resultsFolder)
-		self.saveData(outStream,'matlabOut',self.resultsFolder)
+		self.saveData(outStream,'Script stdout',self.resultsFolder)
 
 
 	def saveData(self,data,name,path2save):
