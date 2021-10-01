@@ -48,69 +48,11 @@ class remoteFolders(object):
 	def setResultsFolder(self,newResultsFolder):
 		self.resultsFolder = newResultsFolder
 	
-	def readInputFormat(self,task):
-		with open(self.runFolder+'/inputformat.txt') as json_file:
-			self.inputformat = json.load(json_file)
-			return self.inputformat
-			
-	def readOutputFormat(self,task):
-		with open(self.runFolder+'/outputformat.txt') as json_file:
-			outputFormats = json.load(json_file)
-			if('.' in task):
-				module_method = task.split('.')
-				lib = module_method[0]
-				meth = module_method[1]
-				self.outputformat = outputFormats['formats'][meth]
-				return outputFormats['formats'][meth]
-			else:
-				self.outputformat = outputFormats
-				return self.outputformat
-	
-	def populateOutData(self,data):
-		self.outputs = self.outputformat
-		self.outputs['data'] = data
-		return self.outputs
-	
-	def populateInData(self,data):
-		self.inputs = self.inputformat
-		self.inputs['data'] = data
-		return self.inputs
-	
-	def createInlineCommand(self,data = None):
-		if(data is None):
-			data = self.inputs['data']
-			dataIn = data.split(',')
-			return dataIn
-
-	def createMatFileCommand(self,params=None,task=None):
-		data = params['data']
-		name = params['name']
-		if(name):
-			filename = self.locateParamsFile(name)
-		else:
-			filename = None
-		if(filename is None):
-			if(not data):
-				data = self.inputs['data']
-			filename = self.runFolder+'/input_file.mat'
-			out_file = open(filename, "wb") 
-			out_file.write(base64.b64decode(data))
-			out_file.close()
-		return os.path.abspath(filename)
-	
-	@staticmethod
-	def _evalTypes(val):
-		try:
-			val = ast.literal_eval(val)
-		except ValueError:
-			pass
-		return val
-
-	def locateFile(self,what,where):
-		for files in os.listdir(where):
-			if(what in str(files)):
-				return os.path.abspath(os.path.join(where,files))
-		return None
+	def get_input_format_path(self,task):
+		return self.runFolder+'/inputformat.txt'
+		
+	def get_output_format_path(self,task):
+		return self.runFolder+'/outputformat.txt'
 
 	def locateParamsFile(self,params):
 		''' Locates the input file in the local folder and returns the path
@@ -291,7 +233,6 @@ class remoteFolders(object):
 		self.moveNewFiles()
 		self.saveData(str(variables),'out',self.resultsFolder)
 		self.saveData(outStream,'Script stdout',self.resultsFolder)
-
 
 	def saveData(self,data,name,path2save):
 		''' Saves in files the information in data as <path2save>/name.txt

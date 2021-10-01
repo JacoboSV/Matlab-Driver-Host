@@ -2,8 +2,6 @@ import sys
 import getopt
 import os
 import matlab.engine
-import io
-import time
 from subprocess import PIPE, Popen, STDOUT
 from datetime import datetime
 from remoteFolders import remoteFolders
@@ -17,7 +15,7 @@ class sessionLauncher(object):
 	folderHandler : Handles the creation, inspection, updating and deleting of files (see remoteFolders.py)
 	taskID: Integer that identifies the running task
 	sessionID: Code that identifies the Matlab session that is running in the computer
-	
+
 	Methods
 	----------
 	createMLSession: Is a static method that can be used to start a Matlab session

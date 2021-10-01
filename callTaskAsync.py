@@ -3,27 +3,27 @@ import getopt
 import os
 import matlab.engine
 import io
-import zipfile
-import random
 import time
 from subprocess import PIPE, Popen
 from datetime import datetime
 import shutil
 from remoteFolders import remoteFolders
 import pandas as pd
-import scipy.io
 import importlib
 from importlib.machinery import SourceFileLoader
-import json
 from runUserScript import sessionLauncher
+from dataFormats import ioFormatter
+import traceback
+
 
 class TaskCaller(object):
-	def __init__(self,taskID, dynamic =False, verbose = False):
+	def __init__(self,taskID, folderHandler, formatter, dynamic =False, verbose = False):
 		self.dynamic = dynamic
 		self.verbose = verbose;
 		self.outIO = io.StringIO()
 		self.errIO = io.StringIO()
-		self.folderHandler = remoteFolders(taskID)
+		self.folderHandler = folderHandler
+		self.formatter = formatter
 		if(dynamic):
 			self.log('Dynamic Task')
 		self.folderHandler.checkCreateFolders()
@@ -45,7 +45,11 @@ class TaskCaller(object):
 		self.folderHandler.saveData(newStatus,'status'+str(self.taskID),self.folderHandler.rootTempFolder)
 		
 	def formatOutputs(self,data):
-		pass
+		#outForm = self.formatter.readOutputFormat(self.taskName)
+		runfolder = self.folderHandler.runFolder
+		resultsfolder = self.folderHandler.resultsFolder
+		filepath = self.folderHandler._zipOutputs()
+		return self.formatter.formatOutputs(runfolder,resultsfolder,data)
 			
 	def removeNewFiles(self):
 		self.folderHandler.removeNewFiles()
@@ -56,7 +60,10 @@ class TaskCaller(object):
 		pass
 		
 	def prepareParameters(self,params,task = None):
-		pass
+		self.log('Params format: ' + str(params['format']))
+		path = self.folderHandler.runFolder
+		return self.formatter.formatInputs(params,task,path)
+		
 	
 	def runTask(self,name,args):
 		''' Runs a task by its name and using the sent parameters
@@ -78,23 +85,25 @@ class TaskCaller(object):
 		'''
 		if(self.verbose):
 			datetimestr = datetime.now()
-			print('[' + datetimestr.strftime("%X %x") + '] : ' + data)
+			print('[' + datetimestr.strftime("%X %x") + '] : ' + str(data)[0:200])
 
 
 class PythonTaskCaller(TaskCaller):
-	def __init__(self,taskID, dynamic =False, verbose = False):
-		super().__init__(taskID, dynamic, verbose)
-		
-	def updateStatus(self,newStatus):
-		''' Stores the actual status in a status file
-		Attributes
-		----------
-		newStatus : string
-			New status to be logged in the status.txt file
-		'''
-		super().updateStatus(newStatus)
+	def __init__(self,taskID, folderHandler, formatter, dynamic =False, verbose = False):
+		super().__init__(taskID, folderHandler, formatter, dynamic, verbose)
 	
-	def gatherResponse(self,data):
+	def updateStatus(self,newStatus):
+		super().updateStatus(newStatus)
+	def formatOutputs(self,data):
+		return super().formatOutputs(data)
+	def removeNewFiles(self):
+		super().removeNewFiles()
+	def prepareParameters(self,params,task = None):
+		return super().prepareParameters(params,task)
+	def log(self,data):
+		super().log(data)
+	
+	def checkStatus(self,data):
 		self.log('Output Variables : ' + str(data))
 		self.log('Completed')
 		self.updateStatus('completed')
@@ -107,50 +116,6 @@ class PythonTaskCaller(TaskCaller):
 		else:
 			self.folderHandler._zipOutputs(keepFolderTree = True)
 			return None
-	
-	def formatOutputs(self,data):
-		outForm = self.folderHandler.readOutputFormat(self.taskName)
-		runfolder = self.folderHandler.runFolder
-		resultsfolder = self.folderHandler.resultsFolder
-		if(outForm['format'] == "matlab"):
-			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
-			return self.folderHandler.populateOutData(self.folderHandler.serializeFile(path2file))
-		elif(outForm['format'] == "bundle"):
-			filepath = self.folderHandler._zipOutputs()
-			filebytes = self.folderHandler.serializeFile(filepath)
-			return self.folderHandler.populateOutData(filebytes)
-			
-		elif(outForm['format'] == "inline"):
-			if(isinstance(data,dict)):
-				outvalues = data
-			else:
-				outvalues = json.loads(data)
-			return self.folderHandler.populateOutData(outvalues)
-		elif(outForm['format'] == "json"):
-			if(isinstance(data,dict)):
-				outvalues = data
-			else:
-				outvalues = json.loads(data)
-			return self.folderHandler.populateOutData(outvalues)
-		else:
-			print('Not Matlab, nor bundle nor inline')
-			return None
-			
-	def removeNewFiles(self):
-		super().removeNewFiles()
-		
-		
-	def prepareParameters(self,params,task = None):
-		self.log('Params format: ' + str(params['format']))
-		self.folderHandler.inputs = params
-		if(params['format'] == 'inline'):
-			return self.folderHandler.createInlineCommand()
-		elif(params['format'] == 'matlab'):
-			return self.folderHandler.createMatFileCommand(params,task)
-		elif(params['format'] == 'json'):
-			return json.dumps(params)
-		else:
-			return 'Error, format is not of inline type'
 	
 	def runTask(self,name,args):
 		''' Runs a task by its name and using the sent parameters
@@ -183,22 +148,17 @@ class PythonTaskCaller(TaskCaller):
 		try:
 			prevDir = os.getcwd()
 			os.chdir(self.folderHandler.runFolder)
-			self.asyncTask = getattr(module, meth)(args)
+			try:
+				self.asyncTask = getattr(module, meth)(args)
+			except:
+				self.asyncTask = getattr(module, meth)(*args)
 			os.chdir(prevDir)
-			self.asyncTask = self.gatherResponse(self.asyncTask)
+			self.asyncTask = self.checkStatus(self.asyncTask)
 			return self.asyncTask
 		except Exception as e:
 			print('Error in method call: ' + str(e))
+			traceback.print_exc()
 			return None
-				
-	def log(self,data):
-		''' Print data along with the time to be used in a log file or similar
-		Attributes
-		----------
-		data : string
-			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
-		'''
-		super().log(data)
 
 
 class MatlabTaskCaller(TaskCaller):
@@ -215,26 +175,36 @@ class MatlabTaskCaller(TaskCaller):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self,taskID, dynamic =False, sessionID = None, verbose = False):
-			super().__init__(taskID, dynamic, verbose)
-			if(sessionID is not None):
-					self.log('Session defined')
-					self.sessionID = sessionID
-					self.joinMLSession()
-			else:
-					self.log('Searching for sessions')
-					availableSessions = self.searchSharedSession()
-					if(len(availableSessions)>0):
-							self.log('There are sessions')
-							self.sessionID = availableSessions[0]
-							self.joinMLSession()
-					else:
-							sessionLauncher.createMLSession()
-							while(searchSharedSession() is None):
-								time.sleep(10)
-								self.sessionID = self.searchSharedSession()[0]
-							self.joinMLSession()
-
+	def __init__(self,taskID, folderHandler, formatter, dynamic =False, sessionID = None, verbose = False):
+		super().__init__(taskID, folderHandler, formatter, dynamic, verbose)
+		if(sessionID is not None):
+				self.log('Session defined')
+				self.sessionID = sessionID
+				self.joinMLSession()
+		else:
+				self.log('Searching for sessions')
+				availableSessions = self.searchSharedSession()
+				if(len(availableSessions)>0):
+						self.log('There are sessions')
+						self.sessionID = availableSessions[0]
+						self.joinMLSession()
+				else:
+						sessionLauncher.createMLSession()
+						while(self.searchSharedSession() is None):
+							time.sleep(10)
+							self.sessionID = self.searchSharedSession()[0]
+						self.joinMLSession()
+	def log(self,data):
+		super().log(data)
+	def prepareParameters(self,params,task = None):
+		return super().prepareParameters(params,task)
+	def updateStatus(self,newStatus):
+		super().updateStatus(newStatus)
+	def formatOutputs(self,data):
+		return super().formatOutputs(data)
+	def removeNewFiles(self):
+		super().removeNewFiles()
+		
 	def joinMLSession(self):
 		''' Connects to the a Matlab session,
 		'''
@@ -290,39 +260,6 @@ class MatlabTaskCaller(TaskCaller):
 			self.folderHandler._zipOutputs(keepFolderTree = True)
 			return None
 
-	def updateStatus(self,newStatus):
-		''' Stores the actual status in a status file
-		Attributes
-		----------
-		newStatus : string
-			New status to be logged in the status.txt file
-		'''
-		super().updateStatus(newStatus)
-
-	def formatOutputs(self,data):
-		outForm = self.folderHandler.readOutputFormat(self.taskName)
-		runfolder = self.folderHandler.runFolder
-		resultsfolder = self.folderHandler.resultsFolder
-		if(outForm['format'] == "matlab"):
-			path2file = self.folderHandler.locateFile(outForm['name'],runfolder)
-			return self.folderHandler.populateOutData(self.folderHandler.serializeFile(path2file))
-		elif(outForm['format'] == "bundle"):
-			filepath = self.folderHandler._zipOutputs()
-			filebytes = self.folderHandler.serializeFile(filepath)
-			return self.folderHandler.populateOutData(filebytes)
-		elif(outForm['format'] == "json"):
-			if(isinstance(data,dict)):
-				outvalues = data
-			else:
-				outvalues = json.loads(data)
-			return self.folderHandler.populateOutData(outvalues)
-		else:
-			print('Not Matlab nor bundle')
-			return None
-
-	def removeNewFiles(self):
-		super().removeNewFiles()
-
 	def killTask(self):
 		''' Kills a running task
 		'''
@@ -337,18 +274,6 @@ class MatlabTaskCaller(TaskCaller):
 				self.log('Task cannot be cancelled, due to error :')
 				self.log(str(e))
 		self.log('User cancelled the task')
-		
-	def prepareParameters(self,params,task = None):
-		self.log('Params format: ' + str(params['format']))
-		self.folderHandler.inputs = params
-		if(params['format'] == 'inline'):
-			return self.folderHandler.createInlineCommand()
-		elif(params['format'] == 'matlab'):
-			return self.folderHandler.createMatFileCommand(params,task)
-		elif(params['format'] == 'json'):
-			return json.dumps(params)
-		else:
-			return 'Error, format is not of inline type'
 				
 	def runTask(self,name,args):
 		''' Runs a task by its name and using the sent parameters
@@ -396,15 +321,6 @@ class MatlabTaskCaller(TaskCaller):
 		except:
 				print('Session Finished')
 
-	def log(self,data):
-		''' Print data along with the time to be used in a log file or similar
-		Attributes
-		----------
-		data : string
-			name of the task to execute, it must be the exact name of the folder and .m file (/name/name.m) inside the Tasks folder
-		'''
-		super().log(data)
-
 
 def main(argv):
 	ON_POSIX = 'posix' in sys.builtin_module_names
@@ -413,8 +329,9 @@ def main(argv):
 	taskID = None
 	path = None
 	ismatlab = True
+	isdynamic = False
 	try:
-			opts, args = getopt.getopt(argv,"ht:a:s:v:i:p:r:m:",["task=","args=","session=","verbose=","taskID=","path=","runF="])
+			opts, args = getopt.getopt(argv,"ht:a:s:v:i:p:r:m:d:",["task=","args=","session=","verbose=","taskID=","path=","runF=","isMatlab=","isDynamic="])
 	except getopt.GetoptError:
 			sys.exit(2)
 	for opt, arg in opts:
@@ -433,13 +350,20 @@ def main(argv):
 					taskID = arg
 			elif opt in ("-m", "--isMatlab"):
 					ismatlab = (arg == 'True')
+			elif opt in ("-d", "--isDynamic"):
+					isdynamic = (arg == 'True')
+	
+	folderHandler = remoteFolders(taskID)
+	formatter = ioFormatter() 
 	
 	if(ismatlab):
-		session = MatlabTaskCaller(taskID = taskID, sessionID = sessionID, verbose = verbose)
+		session = MatlabTaskCaller(taskID,folderHandler, formatter, sessionID = sessionID, verbose = verbose, dynamic = isdynamic)
+		#params = session.prepareParameters(params,task)
 		session.runTask(task, params)
 		session.checkStatus()
 	else:
-		session = PythonTaskCaller(taskID = taskID, verbose = verbose)
+		session = PythonTaskCaller(taskID,folderHandler, formatter, verbose = verbose, dynamic = isdynamic)
+		#params = session.prepareParameters(params,task)
 		session.runTask(task, params)
 
 if __name__ == "__main__":
