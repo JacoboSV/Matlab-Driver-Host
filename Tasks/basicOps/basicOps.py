@@ -22,12 +22,13 @@ def _operation(operation, operand1, operand2):
 		"plus": lambda a,b : a+b,
 		"minus": lambda a,b : a-b,
 		"times": lambda a,b : a*b,
-		"divided by": lambda a,b : a/b
-	}
-	FUNCTIONS = {
-		'exp':  lambda a : math.exp(a),
-		'sqrt': lambda a : math.sqrt(a),
-		'log':  lambda a : math.log(a)
+		"divided by": lambda a,b : a/b,
+		'>' : lambda a, b : a >  b,
+		'>=': lambda a, b : a >= b,
+		'<' : lambda a, b : a <  b,
+		'<=': lambda a, b : a <= b,
+		'==': lambda a, b : a == b,
+		'!=': lambda a, b : a != b
 	}
 
 	if("divided by" in operation):
@@ -40,7 +41,7 @@ def _operation(operation, operand1, operand2):
 		_output = OPERATIONS[operation](operand1, operand2)
 	except Exception as e:
 		_output = "Err"
-		print("Operation not valid: expected 'plus', 'minus', 'times' or 'divided by', got : ", str(operation))
+		print("Operation not valid: expected 'plus', 'minus', 'times', 'divided by', <,>,= or != got : ", str(operation))
 		print("Operation not valid: expected numeric inputs, got : operand 1: " + str(operand1) + ", operand2: " + str(operand1) + "")
 		_error = "Exception captured. Error: " + str(e) 
 		traceback.print_exc()
@@ -53,6 +54,9 @@ def _function(_operation, operand):
 		'sqrt': lambda a : math.sqrt(a),
 		'log':  lambda a : math.log(a)
 	}
+	
+	if(isinstance(operand, str)):
+		operand = float(operand)
 
 	if("sqrt" in _operation and operand<0):
 		_output = "Err"
@@ -72,26 +76,6 @@ def _function(_operation, operand):
 	
 	return {"output": _output, "error": _error}
 
-def _compare(_operation, operand1, operand2):
-	_error = None
-	COMPARISONS = {
-		'>' : lambda a, b : a >  b,
-		'>=': lambda a, b : a >= b,
-		'<' : lambda a, b : a <  b,
-		'<=': lambda a, b : a <= b,
-		'==': lambda a, b : a == b,
-		'!=': lambda a, b : a != b
-		}
-	
-	try: 
-		_output = COMPARISONS[_operation](operand1, operand2)
-	except Exception as e:
-		_output = "Err"
-		print("Operation not valid: expected comparisons using <,>,=,!, got : ", str(operation))
-		print("Operation not valid, inputs are : operand 1: " + str(operand1) + ", operand2: " + str(operand1) + "")
-		_error = "Exception captured. Error: " + str(e) 
-	
-	return {"output": _output, "error": _error}
 
 # Compute output of node C15a/65988
 #_output_1 = _Data_DischargeLoader(Campaign="C15a", Discharge=65988)
