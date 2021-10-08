@@ -4,21 +4,62 @@ from callTaskAsync import MatlabTaskCaller
 import time
 import matlab.engine
 from subprocess import PIPE, Popen, STDOUT
-from runUserScript import MatlabSessionLauncher
+#from runUserScript import MatlabSessionLauncher
 import json
 import base64
+from celery.execute import send_task
 
 
-app = Celery('onlinetasks', backend='rpc://', broker='amqp://fusion:fusion@localhost/fusion_server')
+app = Celery('mytasks', backend='rpc://', broker='amqp://fusion:fusion@62.204.199.200/fusion_server')
 
 @app.task
 def echo(content):
-	task = 'myecho'
-	session = MatlabTaskCaller(None, dynamic = True)
-	session.runTask(task, content)
-	response = session.checkStatus()
+	image = '{"format":"inline","name":"","data":"plus,2,3"}'
+	content = json.loads(image)
+
+	result = send_task("tasks.echo", ['basicOps._operation'])
+	response = result.get()
+	#self.send(text_data=response)
+	#response = result.get(timeout=0.6)
+	#response = nodoPython('basicOps._operation',ins)
+	print(json.dumps(response, indent=4, sort_keys=True)[0:300] + '(...)')
+	print(json.dumps(response, indent=4, sort_keys=True)[-90:])
+	#task = 'myecho'
+	#session = MatlabTaskCaller(None, dynamic = True)
+	#session.runTask(task, content)
+	#response = session.checkStatus()
+	
 	return response
 
+
+@app.task
+def test():
+
+	image = '{"format":"inline","name":"","data":"plus,2,3"}'
+	content = json.loads(image)
+	result = send_task("tasks.nodoPython", ['basicOps._operation',content])
+	response = result.get(timeout=0.6)
+	print(json.dumps(response, indent=4, sort_keys=True)[0:300] + '(...)')
+	#print(json.dumps(response, indent=4, sort_keys=True)[-90:])
+	return response
+
+@app.task
+def basic_operations(operation, operand1, operand2 = None):
+	isOneOperand = operand2 is None
+	if(isOneOperand):
+		data = f'{operation},{operand1}'
+		opType ='basicOps._function'
+	else:
+		data = f'{operation},{operand1},{operand2}'
+		opType ='basicOps._operation'
+	callParams = {"format":"inline", "name":"", "data": data}
+	result = send_task("tasks.nodoPython", [opType,callParams])
+	response = result.get(timeout=0.6)
+	print(json.dumps(response, indent=4, sort_keys=True)[0:400] + '(...)')
+	#print(json.dumps(response, indent=4, sort_keys=True)[-90:])
+	
+	
+	
 # @app.task
 # def label(content):
 	# task = 'label'

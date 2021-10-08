@@ -163,7 +163,7 @@ class remoteFolders(object):
 	def moveNewFiles(self):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
 		'''
-		added = list(set(self.postStatus)-set(self.preStatus))
+		added = self.getNewFilesPath()
 
 		for newfile in added:
 			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
@@ -176,10 +176,27 @@ class remoteFolders(object):
 	def cleanTempFiles(self):
 		os.remove('status'+str(self.taskID)+'.txt')
 	
+	def getNewFilesPath(self):
+		added = list(set(self.postStatus)-set(self.preStatus))
+		return added
+	
+	def getNewFilesPathSize(self):
+		added = self.getNewFilesPath()
+		sizes =[]
+		outFile = os.path.abspath(os.path.join(self.resultsFolder, './out.txt'))
+		stdoutFile = os.path.abspath(os.path.join(self.resultsFolder, './Script stdout.txt'))
+		added.append(outFile)
+		added.append(stdoutFile)
+		for fil in added:
+			sizes.append(os.path.getsize(fil))
+			#print("File: " + str(fil) + ", with size: " + str(os.path.getsize(fil)))
+		return {"names": added, "sizes": sizes}
+
+			
 	def removeNewFiles(self):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
 		'''
-		added = list(set(self.postStatus)-set(self.preStatus))
+		added = self.getNewFilesPath()
 		for newfile in added:
 			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
 			os.remove(newfile)
@@ -187,7 +204,7 @@ class remoteFolders(object):
 		os.remove('status'+str(self.taskID)+'.txt')
 	
 	def _zipNewFiles(self,where):
-		added = list(set(self.postStatus)-set(self.preStatus))
+		added = self.getNewFilesPath()
 		filepath = where+"/out.zip"
 		zf = zipfile.ZipFile(filepath, "w")
 		for newfile in added:

@@ -26,13 +26,13 @@ class ioFormatter(object):
 		self.outputformat = ''
 		self.inputs = ''
 		self.outputs = ''
-		self.inTypes = {
+		self.INPUT_HANDLER = {
 			'matlab' : self._get_Matlab_Input,
 			'file' : self._get_File_Input,
 			'inline' : self._get_Inline_Input,
 			'json' : self._get_Json_Input
 		}
-		self.outTypes = {
+		self.OUTPUT_HANDLER = {
 			'matlab' : self._get_File_Output,
 			'file' : self._get_File_Output,
 			'inline' : self._get_Inline_Output,
@@ -40,18 +40,62 @@ class ioFormatter(object):
 			'bundle' : self._get_Bundle_Output
 		}
 	
+		self.IOSTR = {
+			"format" : "",
+			"name" : "",
+			"data" : None,
+			"info" : {
+				"duration" : 0,
+				"stdout" : "",
+				"generatedFiles" : {
+					"names" : [],
+					"sizes" : []
+				}
+			}
+		}
+		
+	
+
+	def getName(self):
+		return self.IOSTR["name"]
+	def getFormat(self):
+		return self.IOSTR["format"]
+	def getData(self):
+		return self.IOSTR["data"]
+	def setDuration(self,duration):
+		self.IOSTR["info"]["duration"] = duration
+	def setStdout(self,stdout):
+		self.IOSTR["info"]["stdout"] = stdout
+	def setGeneratedFiles(self,names,sizes):
+		self.IOSTR["info"]["generatedFiles"]["names"] = names
+		self.IOSTR["info"]["generatedFiles"]["sizes"] = sizes
+	def addGeneratedFile(self,name,size):
+		self.IOSTR["info"]["generatedFiles"]["names"].append(name)
+		self.IOSTR["info"]["generatedFiles"]["sizes"].append(size)
+	def setName(self,name):
+		self.IOSTR["name"] = name
+	def setFormat(self,format):
+		self.IOSTR["format"] = format
+	def setData(self,data):
+		self.IOSTR["data"] = data
+	def initializeIOSTR(self,ioput):
+		self.setName(ioput["name"])
+		self.setFormat(ioput["format"])
+		self.setData(ioput["data"])
+		
 	def readInputFormat(self,path):
 		with open(path) as json_file:
 			self.inputformat = json.load(json_file)
 			return self.inputformat
 			
 	def readOutputFormat(self,path,task):
-		inputFile = os.path.join(path,'outputformat.txt')
-		with open(inputFile) as json_file:
+		outputFile = os.path.join(path,'outputformat.txt')
+		with open(outputFile) as json_file:
 			outputFormats = json.load(json_file)
+			#When task is a Python task it is written: <library>.<method>. The file outputFile, contain the formats for all the available methods in an array structure. This code read the method, and returns the right format
 			if('.' in task):
 				module_method = task.split('.')
-				lib = module_method[0]
+				#lib = module_method[0]
 				meth = module_method[1]
 				self.outputformat = outputFormats['formats'][meth]
 				return outputFormats['formats'][meth]
@@ -60,56 +104,67 @@ class ioFormatter(object):
 				return self.outputformat
 	
 	def formatInputs(self,params,task,path):
-		self.inputs = params
 		self.task = task
-		format = params['format']
-		return self.inTypes[format](path)
+		self.initializeIOSTR(params)
+		self.inputs = params
+		self.setFormat(params['format'])
+		#format = params['format']
+		return self.INPUT_HANDLER[self.getFormat()](path)
 		
-	def formatOutputs(self,runPath,resultsPath,data):
-		self.outputs = self.readOutputFormat(runPath,self.task)
-		format = self.outputs['format']
-		return self.outTypes[format](runPath,resultsPath,data)
+	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0):
+		expectedOutput = self.readOutputFormat(runPath,self.task)
+		#self.outputs = expectedOutput 
+		self.initializeIOSTR(expectedOutput)
+		if(files):
+			self.setGeneratedFiles(files["names"],files["sizes"])
+		self.setDuration(duration)
+		#format = self.outputs['format']
+		#print("expectedOutput[format]", expectedOutput['format'])
+		#print("self.getFormat()", self.getFormat())
+		return self.OUTPUT_HANDLER[self.getFormat()](runPath,resultsPath,data)
 	
 	def populateOutData(self,data):
-		self.outputs = self.outputformat
-		self.outputs['data'] = data
-		return self.outputs
+		#self.outputs = self.outputformat
+		#self.outputs = self.IOSTR
+		self.IOSTR['data'] = data
+		return self.IOSTR
 	
-	def populateInData(self,data):
-		self.inputs = self.inputformat
-		self.inputs['data'] = data
-		return self.inputs
+	# def populateInData(self,data):
+		# self.inputs = self.inputformat
+		# self.inputs['data'] = data
+		# return self.inputs
 	
 	def _get_Inline_Input(self,path = None):
-		data = self.inputs['data']
-		if(data is None):
-			data = self.inputs['data']
+		data = self.getData()
+		#if(data is None):
+		#	data = self.inputs['data']
 		dataIn = data.split(',')
 		return dataIn
 	
 	def _get_File_Input(self,path = None):
-		return str(self.inputs)
+		#return str(self.inputs)
+		return str(self.IOSTR)
 	
 	def _get_Json_Input(self,path = None):
-		data = self.inputs['data']
-		return json.dumps(data)
+		#data = self.inputs['data']
+		return json.dumps(self.getData())
 
 	def _get_Matlab_Input(self,path):
-		data = self.inputs['data']
-		name = self.inputs['name']
+		#data = self.inputs['data']
+		name = self.getName()
 		if(name):
 			filename = self.locateFile(name)
 		else:
 			filename = None
 		if(filename is None):
-			if(not data):
-				data = self.inputs['data']
+			#if(not data):
+			#	data = self.inputs['data']
 			filename = path + '/input_file.mat'
-			self._b64_to_file(filename,data)
+			self._b64_to_file(filename,self.getData())
 		return os.path.abspath(filename)
 	
 	def _get_File_Output(self,runfolder,resultfolder = None,data = None):
-		path2file = self.locateFile(self.outputs['name'],runfolder)
+		path2file = self.locateFile(self.getName(),runfolder)
 		return self.populateOutData(self.serializeFile(path2file))
 		
 	def _get_Inline_Output(self,runfolder = None,resultfolder = None,data = None):
@@ -125,10 +180,13 @@ class ioFormatter(object):
 		else:
 			outvalues = json.loads(data)
 		return self.populateOutData(outvalues)
-		
+	
 	def _get_Bundle_Output(self,runfolder,resultfolder,data = None):
-		#filepath = self.folderHandler._zipOutputs()
-		path2file = self.locateFile(self.outputs['name'],resultfolder)
+		#print("runfolder: ", runfolder)
+		#print("resultfolder: ", resultfolder)
+		#print("data: ", data)
+		
+		path2file = self.locateFile(self.IOSTR['name'],resultfolder)
 		filebytes = self.serializeFile(path2file)
 		return self.populateOutData(filebytes)
 	

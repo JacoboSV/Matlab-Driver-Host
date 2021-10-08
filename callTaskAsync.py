@@ -28,6 +28,7 @@ class TaskCaller(object):
 			self.log('Dynamic Task')
 		self.folderHandler.checkCreateFolders()
 		self.taskID = self.folderHandler.taskID
+		self.initTime = time.time()
 	
 	def checkStatus(self):
 		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
@@ -46,10 +47,13 @@ class TaskCaller(object):
 		
 	def formatOutputs(self,data):
 		#outForm = self.formatter.readOutputFormat(self.taskName)
+		files = None
 		runfolder = self.folderHandler.runFolder
 		resultsfolder = self.folderHandler.resultsFolder
 		filepath = self.folderHandler._zipOutputs()
-		return self.formatter.formatOutputs(runfolder,resultsfolder,data)
+		files = self.folderHandler.getNewFilesPathSize()
+		duration = time.time() - self.initTime 
+		return self.formatter.formatOutputs(runfolder,resultsfolder,data,files, duration)
 			
 	def removeNewFiles(self):
 		self.folderHandler.removeNewFiles()
@@ -132,15 +136,11 @@ class PythonTaskCaller(TaskCaller):
 		if(self.dynamic):
 			self.folderHandler.copyTasks(lib)
 		pathToScript = os.path.join(self.folderHandler.runFolder, lib)
-		#print(pathToScript)
-		#if('linux' in sys.platform):
-		#	pathToScript = pathToScript.replace('\\','/')
-		#else:
-		#	pathToScript = pathToScript.replace('/','\\')
 		try:
 			module = SourceFileLoader(meth, pathToScript+".py").load_module()
 		except Exception as e:
-			print('Error importing: ' + str(e))
+			print('Error importing method: ' + meth + ", from file: " + pathToScript + ", Error: "  + str(e))
+			traceback.print_exc()
 		self.taskName = name
 		
 		self.folderHandler.savePreStatus()
@@ -156,7 +156,7 @@ class PythonTaskCaller(TaskCaller):
 			self.asyncTask = self.checkStatus(self.asyncTask)
 			return self.asyncTask
 		except Exception as e:
-			print('Error in method call: ' + str(e))
+			#print('Error calling method: ' + meth + ", with arguments: "+ str(args) + ", Error: " + str(e))
 			traceback.print_exc()
 			return None
 
