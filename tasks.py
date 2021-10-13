@@ -39,8 +39,7 @@ def test():
 	content = json.loads(image)
 	result = send_task("tasks.nodoPython", ['basicOps._operation',content])
 	response = result.get(timeout=0.6)
-	print(json.dumps(response, indent=4, sort_keys=True)[0:300] + '(...)')
-	#print(json.dumps(response, indent=4, sort_keys=True)[-90:])
+	printResult(response)
 	return response
 
 @app.task
@@ -55,11 +54,34 @@ def basic_operations(operation, operand1, operand2 = None):
 	callParams = {"format":"inline", "name":"", "data": data}
 	result = send_task("tasks.nodoPython", [opType,callParams])
 	response = result.get(timeout=0.6)
-	print(json.dumps(response, indent=4, sort_keys=True)[0:400] + '(...)')
-	#print(json.dumps(response, indent=4, sort_keys=True)[-90:])
+	printResult(response)
 	
-	
-	
+@app.task
+def callPythonNode(task, args):
+	#image = '{"format":"inline","name":"","data":"\'C15a\',0.001,65988,6"}'
+
+	#callParams = {"format":"inline", "name":"", "data": data}
+	result = send_task("tasks.nodoPython", [task,args])
+	response = result.get(timeout=0.6)
+	printResult(response)
+
+@app.task
+def callMatlabNode(task, args):
+	#image = '{"format":"inline","name":"","data":"\'C15a\',0.001,65988,6"}'
+
+	#callParams = {"format":"inline", "name":"", "data": data}
+	result = send_task("tasks.nodoMatlab", [task,args])
+	response = result.get()
+	printResult(response)
+
+def printResult(response):
+	messageResponse = json.dumps(response, indent=4, sort_keys=True)
+	if(len(messageResponse)>600):
+		print(messageResponse[0:400] + '(...)')
+		print(messageResponse[-200:])
+	else:
+		print(messageResponse)
+
 # @app.task
 # def label(content):
 	# task = 'label'

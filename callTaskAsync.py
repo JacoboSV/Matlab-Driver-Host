@@ -52,8 +52,9 @@ class TaskCaller(object):
 		resultsfolder = self.folderHandler.resultsFolder
 		filepath = self.folderHandler._zipOutputs()
 		files = self.folderHandler.getNewFilesPathSize()
-		duration = time.time() - self.initTime 
-		return self.formatter.formatOutputs(runfolder,resultsfolder,data,files, duration)
+		now = time.time()
+		duration = now - self.initTime 
+		return self.formatter.formatOutputs(runfolder,resultsfolder,data,files, duration, self.initTime, now)
 			
 	def removeNewFiles(self):
 		self.folderHandler.removeNewFiles()

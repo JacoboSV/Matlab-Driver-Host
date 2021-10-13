@@ -45,6 +45,8 @@ class ioFormatter(object):
 			"name" : "",
 			"data" : None,
 			"info" : {
+				"startTime" : "",
+				"stopTime" : "",
 				"duration" : 0,
 				"stdout" : "",
 				"generatedFiles" : {
@@ -58,6 +60,16 @@ class ioFormatter(object):
 
 	def getName(self):
 		return self.IOSTR["name"]
+		
+	def getStartTime(self):
+		return self.IOSTR["name"]["startTime"]
+	def getStopTime(self):
+		return self.IOSTR["info"]["stopTime"]
+	def setStartTime(self,time):
+		self.IOSTR["name"]["startTime"] = time
+	def setStopTime(self):
+		self.IOSTR["name"]["stopTime"] = time
+		
 	def getFormat(self):
 		return self.IOSTR["format"]
 	def getData(self):
@@ -111,13 +123,15 @@ class ioFormatter(object):
 		#format = params['format']
 		return self.INPUT_HANDLER[self.getFormat()](path)
 		
-	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0):
+	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0, startTime = "", stopTime = ""):
 		expectedOutput = self.readOutputFormat(runPath,self.task)
 		#self.outputs = expectedOutput 
 		self.initializeIOSTR(expectedOutput)
 		if(files):
 			self.setGeneratedFiles(files["names"],files["sizes"])
 		self.setDuration(duration)
+		self.setStartTime(startTime)
+		self.setStopTime(stopTime)
 		#format = self.outputs['format']
 		#print("expectedOutput[format]", expectedOutput['format'])
 		#print("self.getFormat()", self.getFormat())
