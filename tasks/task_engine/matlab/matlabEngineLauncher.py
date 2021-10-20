@@ -1,14 +1,7 @@
 import sys
 import matlab.engine
 import time
-import os
-import random
-import subprocess
-from datetime import datetime
 import sys
-import getopt
-import os
-
 
 def main(argv):
 		future = matlab.engine.connect_matlab(background=True)

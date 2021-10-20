@@ -1,10 +1,9 @@
 import sys
 import getopt
-import os
 import matlab.engine
-from subprocess import PIPE, Popen, STDOUT
+from subprocess import Popen
 from datetime import datetime
-from remoteFolders import remoteFolders
+from ..utils import remoteFolders
 
 class sessionLauncher(object):
 	"""

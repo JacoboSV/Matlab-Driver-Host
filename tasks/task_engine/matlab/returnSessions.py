@@ -1,8 +1,5 @@
 import sys
-import getopt
-import os
 import matlab.engine
-import io
 
 def anySharedSession():
         try:
@@ -14,10 +11,7 @@ def main(argv):
         session = ''
         sessionIDs = anySharedSession()
         if(len(sessionIDs)>0):
-
                 print(sessionIDs)
-
-
         else:
                 print('No session available')
 

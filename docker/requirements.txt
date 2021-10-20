@@ -1,0 +1,5 @@
+amqp==5.0.5
+celery==5.0.5
+pandas
+matplotlib
+scipy

@@ -1,16 +1,8 @@
-import sys
-import getopt
-import os
-import matlab.engine
-import io
-import time
-from subprocess import PIPE, Popen, STDOUT
-from datetime import datetime
-import shutil
-import zipfile
-import json
 import ast
 import base64
+import json
+import os
+import time
 
 class ioFormatter(object):
 	"""
@@ -28,68 +20,78 @@ class ioFormatter(object):
 		self.outputs = ''
 		self.INPUT_HANDLER = {
 			'matlab' : self._get_Matlab_Input,
-			'file' : self._get_File_Input,
+			'file'   : self._get_File_Input,
 			'inline' : self._get_Inline_Input,
-			'json' : self._get_Json_Input
+			'json'   : self._get_Json_Input
 		}
 		self.OUTPUT_HANDLER = {
 			'matlab' : self._get_File_Output,
-			'file' : self._get_File_Output,
+			'file'   : self._get_File_Output,
 			'inline' : self._get_Inline_Output,
-			'json' : self._get_Json_Output,
+			'json'   : self._get_Json_Output,
 			'bundle' : self._get_Bundle_Output
 		}
-	
 		self.IOSTR = {
 			"format" : "",
-			"name" : "",
-			"data" : None,
-			"info" : {
-				"startTime" : "",
-				"stopTime" : "",
-				"duration" : 0,
-				"stdout" : "",
+			"name"   : "",
+			"data"   : None,
+			"info"   : {
+				"startTime"      : "",
+				"stopTime"       : "",
+				"duration"       : 0,
+				"stdout"         : "",
 				"generatedFiles" : {
 					"names" : [],
 					"sizes" : []
 				}
 			}
 		}
-		
-	
 
 	def getName(self):
 		return self.IOSTR["name"]
 		
 	def getStartTime(self):
 		return self.IOSTR["name"]["startTime"]
+
 	def getStopTime(self):
 		return self.IOSTR["info"]["stopTime"]
+
 	def setStartTime(self,time):
+		print(self.IOSTR)
 		self.IOSTR["name"]["startTime"] = time
+
 	def setStopTime(self):
 		self.IOSTR["name"]["stopTime"] = time
 		
 	def getFormat(self):
 		return self.IOSTR["format"]
+
 	def getData(self):
 		return self.IOSTR["data"]
+
 	def setDuration(self,duration):
 		self.IOSTR["info"]["duration"] = duration
+
 	def setStdout(self,stdout):
 		self.IOSTR["info"]["stdout"] = stdout
+
 	def setGeneratedFiles(self,names,sizes):
 		self.IOSTR["info"]["generatedFiles"]["names"] = names
 		self.IOSTR["info"]["generatedFiles"]["sizes"] = sizes
+
 	def addGeneratedFile(self,name,size):
 		self.IOSTR["info"]["generatedFiles"]["names"].append(name)
 		self.IOSTR["info"]["generatedFiles"]["sizes"].append(size)
+
 	def setName(self,name):
 		self.IOSTR["name"] = name
+
 	def setFormat(self,format):
 		self.IOSTR["format"] = format
+
 	def setData(self,data):
 		self.IOSTR["data"] = data
+
 	def initializeIOSTR(self,ioput):
 		self.setName(ioput["name"])
 		self.setFormat(ioput["format"])

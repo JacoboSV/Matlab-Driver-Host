@@ -1,15 +1,6 @@
-import sys
-import getopt
 import os
-import matlab.engine
-import io
-import time
-from subprocess import PIPE, Popen, STDOUT
-from datetime import datetime
 import shutil
 import zipfile
-import json
-import ast
 import base64
 
 class remoteFolders(object):
@@ -30,31 +21,31 @@ class remoteFolders(object):
 	def __init__(self, taskID = None):
 		self.preStatus = []
 		self.postStatus = []
-		self.rootRunFolder = './Run/'
-		self.rootResultsFolder = './Results/'
-		self.rootTasksFolder = './Tasks/'
-		self.rootTempFolder = './Temp/'
+		self.rootRunFolder = './var/run/'
+		self.rootResultsFolder = './var/results/'
+		self.rootTasksFolder = './code/'
+		self.rootTempFolder = './var/temp/'
 		self.prefix = 'ciemat'
 		if(taskID is None):
 			self.taskID = self._obtainNextPath2Save()
 		else:
 			self.taskID = taskID
-		self.runFolder = self.rootRunFolder+self.prefix+str(self.taskID)
-		self.resultsFolder = self.rootResultsFolder+self.prefix+str(self.taskID)
+		self.runFolder = self.rootRunFolder + self.prefix + str(self.taskID)
+		self.resultsFolder = self.rootResultsFolder + self.prefix + str(self.taskID)
 	
-	def setRunFolder(self,newRunFolder):
+	def setRunFolder(self, newRunFolder):
 		self.runFolder = newRunFolder
 		
-	def setResultsFolder(self,newResultsFolder):
+	def setResultsFolder(self, newResultsFolder):
 		self.resultsFolder = newResultsFolder
 	
-	def get_input_format_path(self,task):
+	def get_input_format_path(self, task):
 		return self.runFolder+'/inputformat.txt'
 		
-	def get_output_format_path(self,task):
+	def get_output_format_path(self, task):
 		return self.runFolder+'/outputformat.txt'
 
-	def locateParamsFile(self,params):
+	def locateParamsFile(self, params):
 		''' Locates the input file in the local folder and returns the path
 		Attributes
 		----------
@@ -65,11 +56,11 @@ class remoteFolders(object):
 		#print(temporalFolder)
 		for files in os.listdir(temporalFolder):
 			if(params in str(files)):
-				return os.path.abspath(os.path.join(temporalFolder,files))
+				return os.path.abspath(os.path.join(temporalFolder, files))
 		#If not there, try in the main folder
 		for files in os.listdir('./'):
 			if(params in str(files)):
-				return os.path.abspath(os.path.join('./',files))
+				return os.path.abspath(os.path.join('./', files))
 		return None
 
 	def _obtainNextPath2Save(self):
@@ -82,10 +73,10 @@ class remoteFolders(object):
 			Path to the destination folder
 		'''
 		taskID = 0
-		path2Save = self.rootRunFolder+self.prefix+str(taskID)
+		path2Save = self.rootRunFolder + self.prefix + str(taskID)
 		while(os.path.isdir(path2Save)):
-			taskID = taskID +1
-			path2Save = self.rootRunFolder+'ciemat'+str(taskID)
+			taskID = taskID + 1
+			path2Save = self.rootRunFolder + 'ciemat' + str(taskID)
 		return taskID
 	
 	def _makeSymLinks(self,src,dst):
@@ -166,7 +157,7 @@ class remoteFolders(object):
 		added = self.getNewFilesPath()
 
 		for newfile in added:
-			dstfile = newfile.replace(os.path.abspath(self.runFolder),os.path.abspath(self.resultsFolder))
+			dstfile = newfile.replace(os.path.abspath(self.runFolder), os.path.abspath(self.resultsFolder))
 			dstfolder = os.path.split(dstfile)[0]
 			if not os.path.exists(dstfolder):
 				os.makedirs(dstfolder)
@@ -174,10 +165,10 @@ class remoteFolders(object):
 				shutil.copy(newfile,dstfile)
 	
 	def cleanTempFiles(self):
-		os.remove('status'+str(self.taskID)+'.txt')
+		os.remove('status' + str(self.taskID) + '.txt')
 	
 	def getNewFilesPath(self):
-		added = list(set(self.postStatus)-set(self.preStatus))
+		added = list(set(self.postStatus) - set(self.preStatus))
 		return added
 	
 	def getNewFilesPathSize(self):
@@ -251,7 +242,7 @@ class remoteFolders(object):
 		self.saveData(str(variables),'out',self.resultsFolder)
 		self.saveData(outStream,'Script stdout',self.resultsFolder)
 
-	def saveData(self,data,name,path2save):
+	def saveData(self, data, name, path2save):
 		''' Saves in files the information in data as <path2save>/name.txt
 		----------
 		data : string or io.StringIO
@@ -259,14 +250,14 @@ class remoteFolders(object):
 		name : string
 			Name of the file to be saved
 		path2save : string
-			Pâth where the file must be stored, can be relative or absolute
+			Path where the file must be stored, can be relative or absolute
 		'''
 		#self.log('Saving Info...')
 		fileName = path2save + "/" + name + ".txt"
 		try:
-				file = open(fileName,'x')
+				file = open(fileName, 'x')
 		except:
-				file = open(fileName,'w')
+				file = open(fileName, 'w')
 		if(not isinstance(data, str)):
 			dataread  = data.getvalue()
 			file.write(dataread)
