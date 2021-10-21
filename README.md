@@ -1,6 +1,6 @@
 How to start the computing server with docker
 ---------------------------------------------
-The computing server is composed of a RabbitMQ broker and one or more worker (by default only one worker is started).
+The computing server is composed of a RabbitMQ broker and one or more workers (by default only one worker is started).
 
 To start the server:
 1. Be sure that your computer has docker and docker-compose.
