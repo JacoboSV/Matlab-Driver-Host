@@ -101,7 +101,7 @@ class IOFormatter(object):
 			return self.inputformat
 			
 	def readOutputFormat(self,path,task):
-		outputFile = os.path.join(path,'outputformat.txt')
+		outputFile = os.path.join(path, 'outputformat.txt')
 		with open(outputFile) as json_file:
 			outputFormats = json.load(json_file)
 			#When task is a Python task it is written: <library>.<method>. The file outputFile, contain the formats for all the available methods in an array structure. This code read the method, and returns the right format
@@ -115,7 +115,7 @@ class IOFormatter(object):
 				self.outputformat = outputFormats
 				return self.outputformat
 	
-	def formatInputs(self,params,task,path):
+	def formatInputs(self, params, task, path):
 		self.task = task
 		self.initializeIOSTR(params)
 		self.inputs = params
@@ -123,28 +123,28 @@ class IOFormatter(object):
 		return self.INPUT_HANDLER[self.getFormat()](path)
 		
 	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0, startTime = "", stopTime = ""):
-		expectedOutput = self.readOutputFormat(runPath,self.task)
+		expectedOutput = self.readOutputFormat(runPath, self.task)
 		self.initializeIOSTR(expectedOutput)
 		if(files):
 			self.setGeneratedFiles(files["names"],files["sizes"])
 		self.setDuration(duration)
 		self.setStartTime(startTime)
 		self.setStopTime(stopTime)
-		return self.OUTPUT_HANDLER[self.getFormat()](runPath,resultsPath,data)
+		return self.OUTPUT_HANDLER[self.getFormat()](runPath, resultsPath, data)
 	
-	def populateOutData(self,data):
+	def populateOutData(self, data):
 		self.IOSTR['data'] = data
 		return self.IOSTR
 	
-	def _get_Inline_Input(self,path = None):
+	def _get_Inline_Input(self, path=None):
 		data = self.getData()
 		dataIn = data.split(',')
 		return dataIn
 	
-	def _get_File_Input(self,path = None):
+	def _get_File_Input(self, path=None):
 		return str(self.IOSTR)
 	
-	def _get_Json_Input(self,path = None):
+	def _get_Json_Input(self, path=None):
 		return json.dumps(self.getData())
 
 	def _get_Matlab_Input(self,path):
@@ -158,18 +158,18 @@ class IOFormatter(object):
 			self._b64_to_file(filename,self.getData())
 		return os.path.abspath(filename)
 	
-	def _get_File_Output(self,runfolder,resultfolder = None,data = None):
+	def _get_File_Output(self,runfolder, resultfolder = None,data = None):
 		path2file = self.locateFile(self.getName(),runfolder)
 		return self.populateOutData(self.serializeFile(path2file))
 		
-	def _get_Inline_Output(self,runfolder = None,resultfolder = None,data = None):
+	def _get_Inline_Output(self,runfolder = None, resultfolder = None,data = None):
 		if(isinstance(data,dict)):
 			outvalues = data
 		else:
 			outvalues = str(data)
 		return self.populateOutData(outvalues)
 		
-	def _get_Json_Output(self,runfolder = None,resultfolder = None,data = None):
+	def _get_Json_Output(self,runfolder = None, resultfolder = None,data = None):
 		if(isinstance(data,dict)):
 			outvalues = data
 		else:

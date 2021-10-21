@@ -29,7 +29,7 @@ class TaskCaller(object):
 		newStatus : string
 			New status to be logged in the status.txt file
 		'''
-		self.folderHandler.saveData(newStatus, 'status' + str(self.taskID), self.folderHandler.rootTempFolder)
+		self.folderHandler.saveData(newStatus, 'status' + str(self.taskID), self.folderHandler.paths['temp'])
 		
 	def formatOutputs(self, data):
 		#outForm = self.formatter.readOutputFormat(self.taskName)

@@ -21,17 +21,20 @@ class remoteFolders(object):
 	def __init__(self, taskID = None):
 		self.preStatus = []
 		self.postStatus = []
-		self.rootRunFolder = './var/run/'
-		self.rootResultsFolder = './var/results/'
-		self.rootTasksFolder = './code/'
-		self.rootTempFolder = './var/temp/'
 		self.prefix = 'ciemat'
+		self.paths = {
+			'run'    : './var/run/',
+			'results': './var/results/',
+			'tasks'  : './code/',
+			'temp'   : './var/temp/',
+		}
+		[self._createFolder(self.paths[p]) for p in self.paths]
 		if(taskID is None):
 			self.taskID = self._obtainNextPath2Save()
 		else:
 			self.taskID = taskID
-		self.runFolder = self.rootRunFolder + self.prefix + str(self.taskID)
-		self.resultsFolder = self.rootResultsFolder + self.prefix + str(self.taskID)
+		self.runFolder = self.paths['run'] + self.prefix + str(self.taskID)
+		self.resultsFolder = self.paths['results'] + self.prefix + str(self.taskID)
 	
 	def setRunFolder(self, newRunFolder):
 		self.runFolder = newRunFolder
@@ -52,8 +55,7 @@ class remoteFolders(object):
 		params : string
 			Complete name or prefix to identify an input file
 		'''
-		temporalFolder = os.path.abspath(self.rootTempFolder)
-		#print(temporalFolder)
+		temporalFolder = os.path.abspath(self.paths['temp'])
 		for files in os.listdir(temporalFolder):
 			if(params in str(files)):
 				return os.path.abspath(os.path.join(temporalFolder, files))
@@ -73,10 +75,10 @@ class remoteFolders(object):
 			Path to the destination folder
 		'''
 		taskID = 0
-		path2Save = self.rootRunFolder + self.prefix + str(taskID)
+		path2Save = self.paths['run'] + self.prefix + str(taskID)
 		while(os.path.isdir(path2Save)):
 			taskID = taskID + 1
-			path2Save = self.rootRunFolder + 'ciemat' + str(taskID)
+			path2Save = self.paths['run'] + 'ciemat' + str(taskID)
 		return taskID
 	
 	def _makeSymLinks(self,src,dst):
@@ -96,7 +98,7 @@ class remoteFolders(object):
 				newfile = os.path.join(root,afile).replace(src,dst)
 				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
 	
-	def _createFolder(self,path):
+	def _createFolder(self, path):
 		''' Check and creates a folder if not there
 		Attributes
 		----------
@@ -104,7 +106,7 @@ class remoteFolders(object):
 			Path with the folder name included
 		'''
 		if(not os.path.isdir(path)):
-			os.mkdir(path)
+			os.makedirs(path)
 	
 	def copyInputs(self,params):
 		''' Creates symbolic link to the input files in the folder in <rootTasksFolder>
@@ -140,14 +142,11 @@ class remoteFolders(object):
 		task : string
 			Name of the task or script to be executed
 		'''
-		self._makeSymLinks(self.rootTasksFolder+task,self.runFolder)
+		self._makeSymLinks(self.paths['tasks'] + task,self.runFolder)
 	
 	def checkCreateFolders(self):
 		''' Create the main folders needed to run the scripts and store outputs
 		'''
-		self._createFolder(self.rootRunFolder)
-		self._createFolder(self.rootResultsFolder)
-		self._createFolder(self.rootTasksFolder)
 		self._createFolder(self.runFolder)
 		self._createFolder(self.resultsFolder)
 	
