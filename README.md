@@ -1,22 +1,21 @@
 How to start the computing server with docker
 ---------------------------------------------
-The computing server is composed of a RabbitMQ broker and one or more worker (by default only one worker is started).
+The computing server is composed of a RabbitMQ broker and one or more workers (by default only one worker is started).
 
 To start the server:
 1. Be sure that your computer has docker and docker-compose.
-2. Obtain a copy of this repository and save it in your computer (we will refer to your local folder as ${Fusion-Driver-Host})
-2. Open a terminal and go to the folder ${Fusion-Driver-Host}/docker/.
-3. Run the following command:
+2. Obtain a copy of this repository and save it in your computer (we will refer to your local folder as `${Fusion-Driver-Host}`)
+3. Open a terminal and go to the folder `${Fusion-Driver-Host}/docker/`.
+4. Run the following command:
 ```
 docker-compose up
 ```
 
 Testing workers can run tasks
 ------------------------------
-With the default configuration, a worker should be able to run Python tasks (that are stored in the folder ${Fusion-Driver-Host}/code/).
+With the default configuration, a worker should be able to run Python tasks (that are stored in the folder `${Fusion-Driver-Host}/code/`).
 
-To test the worker (of course, the server must be previously started):
-1. Run the following command:
+To test the worker (of course, the server must be previously started), run the following command:
 ```
 docker-compose exec worker python tests/test_task_python.py
 ```
