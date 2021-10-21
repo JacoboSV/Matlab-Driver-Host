@@ -24,7 +24,7 @@ class PythonTaskCaller(TaskCaller):
 	def log(self, data):
 		super().log(data)
 	
-	def checkStatus(self,data):
+	def checkStatus(self, data):
 		self.log('Output Variables : ' + str(data))
 		self.log('Completed')
 		self.updateStatus('completed')

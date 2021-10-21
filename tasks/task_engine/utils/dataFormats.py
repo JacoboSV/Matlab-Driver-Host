@@ -4,7 +4,7 @@ import json
 import os
 import time
 
-class ioFormatter(object):
+class IOFormatter(object):
 	"""
 	Class to manage 
 
@@ -13,7 +13,6 @@ class ioFormatter(object):
 
 	"""
 	def __init__(self):
-		#self.folderHandler = folderHandler
 		self.inputformat = ''
 		self.outputformat = ''
 		self.inputs = ''
@@ -51,17 +50,16 @@ class ioFormatter(object):
 		return self.IOSTR["name"]
 		
 	def getStartTime(self):
-		return self.IOSTR["name"]["startTime"]
+		return self.IOSTR["info"]["startTime"]
 
 	def getStopTime(self):
 		return self.IOSTR["info"]["stopTime"]
 
-	def setStartTime(self,time):
-		print(self.IOSTR)
-		self.IOSTR["name"]["startTime"] = time
+	def setStartTime(self, time):
+		self.IOSTR["info"]["startTime"] = time
 
-	def setStopTime(self):
-		self.IOSTR["name"]["stopTime"] = time
+	def setStopTime(self, time):
+		self.IOSTR["info"]["stopTime"] = time
 		
 	def getFormat(self):
 		return self.IOSTR["format"]
@@ -69,10 +67,10 @@ class ioFormatter(object):
 	def getData(self):
 		return self.IOSTR["data"]
 
-	def setDuration(self,duration):
+	def setDuration(self, duration):
 		self.IOSTR["info"]["duration"] = duration
 
-	def setStdout(self,stdout):
+	def setStdout(self, stdout):
 		self.IOSTR["info"]["stdout"] = stdout
 
 	def setGeneratedFiles(self,names,sizes):
@@ -122,59 +120,40 @@ class ioFormatter(object):
 		self.initializeIOSTR(params)
 		self.inputs = params
 		self.setFormat(params['format'])
-		#format = params['format']
 		return self.INPUT_HANDLER[self.getFormat()](path)
 		
 	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0, startTime = "", stopTime = ""):
 		expectedOutput = self.readOutputFormat(runPath,self.task)
-		#self.outputs = expectedOutput 
 		self.initializeIOSTR(expectedOutput)
 		if(files):
 			self.setGeneratedFiles(files["names"],files["sizes"])
 		self.setDuration(duration)
 		self.setStartTime(startTime)
 		self.setStopTime(stopTime)
-		#format = self.outputs['format']
-		#print("expectedOutput[format]", expectedOutput['format'])
-		#print("self.getFormat()", self.getFormat())
 		return self.OUTPUT_HANDLER[self.getFormat()](runPath,resultsPath,data)
 	
 	def populateOutData(self,data):
-		#self.outputs = self.outputformat
-		#self.outputs = self.IOSTR
 		self.IOSTR['data'] = data
 		return self.IOSTR
 	
-	# def populateInData(self,data):
-		# self.inputs = self.inputformat
-		# self.inputs['data'] = data
-		# return self.inputs
-	
 	def _get_Inline_Input(self,path = None):
 		data = self.getData()
-		#if(data is None):
-		#	data = self.inputs['data']
 		dataIn = data.split(',')
 		return dataIn
 	
 	def _get_File_Input(self,path = None):
-		#return str(self.inputs)
 		return str(self.IOSTR)
 	
 	def _get_Json_Input(self,path = None):
-		#data = self.inputs['data']
 		return json.dumps(self.getData())
 
 	def _get_Matlab_Input(self,path):
-		#data = self.inputs['data']
 		name = self.getName()
 		if(name):
 			filename = self.locateFile(name)
 		else:
 			filename = None
 		if(filename is None):
-			#if(not data):
-			#	data = self.inputs['data']
 			filename = path + '/input_file.mat'
 			self._b64_to_file(filename,self.getData())
 		return os.path.abspath(filename)
@@ -198,10 +177,6 @@ class ioFormatter(object):
 		return self.populateOutData(outvalues)
 	
 	def _get_Bundle_Output(self,runfolder,resultfolder,data = None):
-		#print("runfolder: ", runfolder)
-		#print("resultfolder: ", resultfolder)
-		#print("data: ", data)
-		
 		path2file = self.locateFile(self.IOSTR['name'],resultfolder)
 		filebytes = self.serializeFile(path2file)
 		return self.populateOutData(filebytes)

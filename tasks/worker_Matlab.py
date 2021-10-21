@@ -1,6 +1,6 @@
 from .task_engine.MatlabTaskCaller import MatlabTaskCaller
 from .task_engine.utils.remoteFolders import remoteFolders
-from .task_engine.utils.dataFormats import ioFormatter
+from .task_engine.utils.dataFormats import IOFormatter
 import json
 
 
@@ -28,7 +28,7 @@ def nodoMatlab(taskname, content):
 	if(taskname is None):
 		return {}
 	folderHandler = remoteFolders()
-	formatter = ioFormatter() 
+	formatter = IOFormatter() 
 	session = MatlabTaskCaller(None, folderHandler, formatter, dynamic = True)
 	if(isinstance(content,dict)):
 		ins = content

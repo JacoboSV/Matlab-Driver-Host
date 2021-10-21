@@ -1,6 +1,6 @@
 from .task_engine.PythonTaskCaller import PythonTaskCaller
 from .task_engine.utils.remoteFolders import remoteFolders
-from .task_engine.utils.dataFormats import ioFormatter
+from .task_engine.utils.dataFormats import IOFormatter
 import json
 from celery import Celery
 
@@ -12,7 +12,7 @@ def nodoPython(taskname, content):
 		return {}
 	else:
 		folderHandler = remoteFolders()
-		formatter = ioFormatter()
+		formatter = IOFormatter()
 		session = PythonTaskCaller(None, folderHandler, formatter, dynamic = True)
 		if(isinstance(content, dict)):
 			ins = content

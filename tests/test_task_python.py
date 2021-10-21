@@ -15,8 +15,8 @@ def printResult(response):
 
 def test_nodoPython(image):
 	content = json.loads(image)
-	result = send_task("tasks.worker_Python.nodoPython", ['basicOps._operation',content])
-	response = result.get(timeout=0.6)
+	result = send_task("tasks.worker_Python.nodoPython", ['basicOps._operation', content])
+	response = result.get()
 	return response
 
 
