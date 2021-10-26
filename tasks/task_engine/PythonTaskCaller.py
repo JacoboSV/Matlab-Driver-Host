@@ -6,38 +6,7 @@ from .TaskCaller import TaskCaller
 
 class PythonTaskCaller(TaskCaller):
 
-	def __init__(self, taskID, folderHandler, formatter, dynamic=False, verbose=False):
-		super().__init__(taskID, folderHandler, formatter, dynamic, verbose)
-	
-	def updateStatus(self,newStatus):
-		super().updateStatus(newStatus)
 
-	def formatOutputs(self, data):
-		return super().formatOutputs(data)
-
-	def removeNewFiles(self):
-		super().removeNewFiles()
-
-	def prepareParameters(self, params, task=None):
-		return super().prepareParameters(params, task)
-
-	def log(self, data):
-		super().log(data)
-	
-	def checkStatus(self, data):
-		self.log('Output Variables : ' + str(data))
-		self.log('Completed')
-		self.updateStatus('completed')
-		self.log('Saving outputs')
-		self.folderHandler.savePostStatus()
-		self.folderHandler.saveIO(data, self.outIO)
-		if(self.dynamic):
-			outputs = self.formatOutputs(data)
-			return outputs
-		else:
-			self.folderHandler._zipOutputs(keepFolderTree = True)
-			return None
-	
 	def runTask(self, name, args):
 		''' Runs a task by its name and using the sent parameters
 		Attributes

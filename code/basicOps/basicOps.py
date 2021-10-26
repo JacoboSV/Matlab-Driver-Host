@@ -28,7 +28,8 @@ def _operation(operation, operand1, operand2):
 		'<' : lambda a, b : a <  b,
 		'<=': lambda a, b : a <= b,
 		'==': lambda a, b : a == b,
-		'!=': lambda a, b : a != b
+		'!=': lambda a, b : a != b,
+		"maximum": lambda a, b : _numpy.maximum(a, b),
 	}
 
 	if("divided by" in operation):

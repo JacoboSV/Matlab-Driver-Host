@@ -38,21 +38,6 @@ class MatlabTaskCaller(TaskCaller):
 							time.sleep(10)
 							self.sessionID = self.searchSharedSession()[0]
 						self.joinMLSession()
-
-	def log(self,data):
-		super().log(data)
-
-	def prepareParameters(self,params,task = None):
-		return super().prepareParameters(params,task)
-
-	def updateStatus(self,newStatus):
-		super().updateStatus(newStatus)
-
-	def formatOutputs(self,data):
-		return super().formatOutputs(data)
-
-	def removeNewFiles(self):
-		super().removeNewFiles()
 		
 	def joinMLSession(self):
 		''' Connects to the a Matlab session,
@@ -73,7 +58,7 @@ class MatlabTaskCaller(TaskCaller):
 		except:
 			return None	
 
-	def checkStatus(self):
+	def checkStatus(self, data=None):
 		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
 		'''
 		checkCounter = 10
@@ -112,9 +97,9 @@ class MatlabTaskCaller(TaskCaller):
 	def killTask(self):
 		''' Kills a running task
 		'''
-		timeout = 10;
+		timeout = 10
 		while((not self.asyncTask.cancelled()) & (timeout>0)):
-			timeout = timeout -1;
+			timeout = timeout -1
 			time.sleep(1)
 			self.log('Trying to cancel, attempts left : ' + str(timeout))
 			try:

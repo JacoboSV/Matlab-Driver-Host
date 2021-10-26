@@ -1,9 +1,12 @@
+from abc import abstractmethod
 import io
 import time
 from datetime import datetime
 
 
 class TaskCaller(object):
+
+
 	def __init__(self, taskID, folderHandler, formatter, dynamic=False, verbose=False):
 		self.dynamic = dynamic
 		self.verbose = verbose
@@ -17,10 +20,24 @@ class TaskCaller(object):
 		self.taskID = self.folderHandler.taskID
 		self.initTime = time.time()
 	
-	def checkStatus(self):
-		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
+	def checkStatus(self, data=None):
+		''' Reads the status of the current work.
+		This method only finishes when the task is completed or canceled
+		(due to error or if the file kill.txt exists)
 		'''
-		pass
+		self.log('Output Variables : ' + str(data))
+		self.log('Completed')
+		self.updateStatus('completed')
+		self.log('Saving outputs')
+		self.folderHandler.savePostStatus()
+		self.folderHandler.saveIO(data, self.outIO)
+		if(self.dynamic):
+			outputs = self.formatOutputs(data)
+			print(outputs)
+			return outputs
+		else:
+			self.folderHandler._zipOutputs(keepFolderTree = True)
+			return None
 		
 	def updateStatus(self, newStatus):
 		''' Stores the actual status in a status file
@@ -41,7 +58,7 @@ class TaskCaller(object):
 		now = time.time()
 		duration = now - self.initTime 
 		return self.formatter.formatOutputs(runfolder, resultsfolder, data, files, duration, self.initTime, now)
-			
+
 	def removeNewFiles(self):
 		self.folderHandler.removeNewFiles()
 		
@@ -55,7 +72,7 @@ class TaskCaller(object):
 		path = self.folderHandler.runFolder
 		return self.formatter.formatInputs(params, task, path)
 		
-	
+	@abstractmethod
 	def runTask(self, name, args):
 		''' Runs a task by its name and using the sent parameters
 		Attributes
@@ -65,7 +82,6 @@ class TaskCaller(object):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
-		pass
 				
 	def log(self, data):
 		''' Print data along with the time to be used in a log file or similar

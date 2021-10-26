@@ -122,13 +122,13 @@ class IOFormatter(object):
 		self.setFormat(params['format'])
 		return self.INPUT_HANDLER[self.getFormat()](path)
 		
-	def formatOutputs(self,runPath,resultsPath,data,files = None,duration = 0, startTime = "", stopTime = ""):
+	def formatOutputs(self, runPath, resultsPath, data, files=None, duration=0, startTime="", stopTime=""):
 		expectedOutput = self.readOutputFormat(runPath, self.task)
 		self.initializeIOSTR(expectedOutput)
 		if(files):
 			self.setGeneratedFiles(files["names"],files["sizes"])
 		self.setDuration(duration)
-		self.setStartTime(startTime)
+		self.setStartTime(startTime)	
 		self.setStopTime(stopTime)
 		return self.OUTPUT_HANDLER[self.getFormat()](runPath, resultsPath, data)
 	
@@ -169,8 +169,8 @@ class IOFormatter(object):
 			outvalues = str(data)
 		return self.populateOutData(outvalues)
 		
-	def _get_Json_Output(self,runfolder = None, resultfolder = None,data = None):
-		if(isinstance(data,dict)):
+	def _get_Json_Output(self, runfolder=None, resultfolder=None, data=None):
+		if(isinstance(data, dict)):
 			outvalues = data
 		else:
 			outvalues = json.loads(data)

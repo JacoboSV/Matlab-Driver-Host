@@ -20,7 +20,18 @@ def test_nodoPython(image):
 	return response
 
 
+def test_BinaryNode(image):
+	content = json.loads(image)
+	result = send_task("tasks.worker_Python.binaryNode", ['C/basicOps/run', content])
+	response = result.get()
+	return response
+
+
 if __name__ == "__main__":
-  input = '{"format":"inline","name":"","data":"plus,2,3"}'
+  input = '{"format":"inline","name":"","data":"maximum,2,3"}'
   output = test_nodoPython(input)
+  printResult(output)
+
+  input = '{"format":"inline","name":"","data":"maximum,2,4"}'
+  output = test_BinaryNode(input)
   printResult(output)

@@ -142,7 +142,7 @@ class remoteFolders(object):
 		task : string
 			Name of the task or script to be executed
 		'''
-		self._makeSymLinks(self.paths['tasks'] + task,self.runFolder)
+		self._makeSymLinks(self.paths['tasks'] + task, self.runFolder)
 	
 	def checkCreateFolders(self):
 		''' Create the main folders needed to run the scripts and store outputs
@@ -228,7 +228,7 @@ class remoteFolders(object):
 		datastring = data.decode('utf-8')
 		return datastring
 					
-	def saveIO(self,variables, outStream):
+	def saveIO(self, variables, outStream):
 		''' Saves all the new data, outputs and variables after the execution of the script/task
 		Attributes
 		----------
@@ -238,8 +238,8 @@ class remoteFolders(object):
 			Object containing all the outputs of the stdout pipe
 		'''
 		self.moveNewFiles()
-		self.saveData(str(variables),'out',self.resultsFolder)
-		self.saveData(outStream,'Script stdout',self.resultsFolder)
+		self.saveData(str(variables), 'out', self.resultsFolder)
+		self.saveData(outStream, 'Script stdout', self.resultsFolder)
 
 	def saveData(self, data, name, path2save):
 		''' Saves in files the information in data as <path2save>/name.txt
