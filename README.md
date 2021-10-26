@@ -11,6 +11,21 @@ To start the server:
 docker-compose up
 ```
 
+Setting the RabbitMQ server
+---------------------------
+The communication between the IODA Fusion server and the IODA computing nodes relies on a RabbitMQ broker. Since that connection is usually protected and needs users' credentials, it must be configured by the user. The default configuration only works for local testing.
+
+Edit the environment variable ```BROKER_URL``` in the ```docker-compose.yml```:
+```
+BROKER_URL=amqp://user:password@host/vhost
+```
+- ```amqp``` is the protocol used by default. 
+- ```user:password``` are the users' credentials.
+- ```host``` is the ip or domain name of the machine that is running the broker. 
+- ```vhost``` (optional, depending on the configuration) is the virtual host provided by the RabbitMQ broker.  
+
+If you are using an external broker that is not under your control, then ask the administrator. 
+
 Testing workers can run tasks
 ------------------------------
 With the default configuration, a worker should be able to run Python tasks (that are stored in the folder `${Fusion-Driver-Host}/code/`).
