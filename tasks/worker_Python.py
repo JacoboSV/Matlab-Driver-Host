@@ -4,9 +4,14 @@ from .task_engine.utils.remoteFolders import remoteFolders
 from .task_engine.utils.dataFormats import IOFormatter
 import json
 from celery import Celery
+import os
 
-app = Celery('test')
+APP_PREFIX = 'tasks'
+NODE_NAME  = os.getenv('NODE_NAME')
+app = Celery('worker')
 
+def getMachineTaskName(taskname):
+	return '{0}.{1}.{2}'.format(APP_PREFIX, NODE_NAME, taskname)
 
 def runNode(taskCaller, taskname, content):
 	if(taskname is None):
@@ -23,12 +28,12 @@ def runNode(taskCaller, taskname, content):
 	return response
 
 
-@app.task
+@app.task(name=getMachineTaskName('nodoPython'))
 def nodoPython(taskname, content):
 	return runNode(PythonTaskCaller, taskname, content)
 
 
-@app.task
+@app.task(name=getMachineTaskName('binaryNode'))
 def binaryNode(taskname, content):
 	return runNode(BinaryTaskCaller, taskname, content)
 

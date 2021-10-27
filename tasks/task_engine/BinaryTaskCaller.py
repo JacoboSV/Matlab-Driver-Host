@@ -22,7 +22,7 @@ class BinaryTaskCaller(TaskCaller):
 		try:
 			result = subprocess.run([pathToScript] + args, capture_output=True)
 			data = {
-				"output": float(result.stdout.decode('UTF-8')),
+				"output": (result.stdout.decode('UTF-8')),
 				"error": result.stderr.decode('UTF-8')
 			}
 			return self.checkStatus(data)

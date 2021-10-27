@@ -7,8 +7,8 @@ services:
     image: worker 
     environment:
       - BROKER_URL=amqp://guest:guest@rabbitmq
-      - CELERY_IMPORTS=['tasks_Python', 'tasks_Matlab']
       - RESULT_BACKEND=rpc
+      - NODE_NAME=worker_Python
     restart: 'no'
     volumes:
       - ../:/code
