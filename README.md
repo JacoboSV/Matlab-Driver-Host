@@ -26,6 +26,17 @@ BROKER_URL=amqp://user:password@host/vhost
 
 If you are using an external broker that is not under your control, then ask the administrator. 
 
+How to create a custom task
+---------------------------
+IODA computing node can run a custom task which is some code that can be interpreted (MATLAB, Python) or more generally any binary that complies with a few format requirements (see below).
+
+To configure a new task, (e.g. a binary file):
+1. Put your files inside the `${Fusion-Driver-Host}/code/` folder. 
+2. Create the files `inputFormat.txt` and `outputFormat.txt` that defines the input and output format (open `${Fusion-Driver-Host}/code/basicOps/` for an example).
+
+The input data will be forwarded to your application as input arguments, and the output will be captured either directly from the standard output (stdout) or as a file.
+
+
 Testing workers can run tasks
 ------------------------------
 With the default configuration, a worker should be able to run Python tasks (that are stored in the folder `${Fusion-Driver-Host}/code/`).
