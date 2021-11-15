@@ -77,12 +77,81 @@ def _function(_operation, operand):
 	
 	return {"output": _output, "error": _error}
 
+def _polishCalculation(operation1, operand1, operand2, operation2=None, operand3=None, operation3=None, operand4=None, operation4=None, operand5=None, operation5=None, operand6=None, operation6=None, operand7=None, operation7=None, operand8=None):
+	OPERATIONS = {
+		'plus':         lambda a, b : a + b,
+		'minus':        lambda a, b : a - b,
+		'times':        lambda a, b : a * b,
+		'divided by':   lambda a, b : a / b,
+		'pow':          lambda a, b : math.pow(a,b),
+		'atan2':        lambda a, b : math.atan2(a,b),
+		'sqrt':         lambda a : math.sqrt(a),
+		'exp':          lambda a : math.exp(a),
+		'log':          lambda a : math.log(a),
+		'sin':          lambda a : math.sin(a),
+		'cos':          lambda a : math.cos(a),
+		'tan':          lambda a : math.tan(a),
+		'asin':          lambda a : math.asin(a),
+		'acos':          lambda a : math.acos(a),
+		'atan':         lambda a : math.atan(a),
+		}
+	_error = None
 
-# Compute output of node C15a/65988
-#_output_1 = _Data_DischargeLoader(Campaign="C15a", Discharge=65988)
+	operands = [operand1,operand2,operand3,operand4,operand5,operand6,operand7,operand8]
+	operations = [operation1,operation2,operation3,operation4,operation5,operation6,operation7]
+	#operations = [op for op in operations if op]
+	
+	counter = len(operations)-1
+	for i in range(0,len(operations)):
+		if(operations[counter] is not None):
+			break
+		counter = counter-1
+	operations = operations[0:counter+1]
+	
+	counter = len(operands)-1
+	for i in range(0,len(operands)):
+		#print("operands[counter]: ",operands[counter])
+		if(operands[counter] is not None):
+			try: 
+				float(operands[counter])
+				break
+			except:
+				operations.append(operands[counter])
+				counter = counter - 1 
+		else:
+			counter = counter - 1 
+			
+	
+	operands = operands[0:counter+1]
+	operands = [float(op) for op in operands]
+	
+	print(operands)
+	print(operations)
+	
+	_output = operands.pop()
+	next = operands.pop()
 
-# Compute output of node Crop and resample
-#_output_2 = _Data_DischargePreprocessing(_output_1, SamplingPeriod=0.001)
-
-# Compute output of node Radiated power
-#_output_3 = _Model_SignalSelection(_output_2, Signal="signal_06", LowerLimit=1000)
+	try:
+		for i, op in enumerate(operations):
+			print(_output)
+			if(op is None or op == 'None'):
+				operands.insert(0,_output)
+				_output = operands.pop()
+			else:
+				_output = OPERATIONS[op](next,_output)
+				try:
+					popped = operands.pop()
+					next = popped
+				except:
+					pass
+		
+	except Exception as e:
+		_output = "Err"
+		operationList = ""
+		operationList = ",".join([operationList + str(k) for k,v in OPERATIONS.items()])
+		print("Operation not valid, expected : ", operationList)
+		print("Operation not valid: expected numeric input")
+		print(traceback.print_exc())
+		_error = "Exception captured. Error: " + str(e) 
+	return {"output": _output, "error": _error}
+	
