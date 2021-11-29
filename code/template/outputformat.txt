@@ -1,0 +1,1 @@
+{"formats":{"<MethodName1>" : {"format": "<AFormat_inline_file_or_json>","name":"","data":""},"MethodName1" : {"format": "json","name":"","data":""}, "<MethodNameExample1>" : {"format": "json","name":"","data":""}, "<MethodName3>" : {"format": "MethodNameExample1","name":"<A_file_name>","data":""}}}
