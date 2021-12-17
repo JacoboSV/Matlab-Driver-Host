@@ -1,8 +1,8 @@
-import json
+import json, os
 from celery import Celery
 from celery.execute import send_task
 
-app = Celery('test', backend='rpc://', broker='amqp://guest:guest@rabbitmq')
+app = Celery('test', backend='rpc://', broker=os.getenv('BROKER_URL'))
 
 def printResult(response):
 	messageResponse = json.dumps(response, indent=4, sort_keys=True)
