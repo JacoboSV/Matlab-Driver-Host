@@ -35,9 +35,9 @@ class PythonTaskCaller(TaskCaller):
 			prevDir = os.getcwd()
 			os.chdir(self.folderHandler.runFolder)
 			try:
-				self.asyncTask = getattr(module, meth)(args)
-			except:
 				self.asyncTask = getattr(module, meth)(*args)
+			except:
+				self.asyncTask = getattr(module, meth)(args)
 			os.chdir(prevDir)
 			self.asyncTask = self.checkStatus(self.asyncTask)
 			return self.asyncTask

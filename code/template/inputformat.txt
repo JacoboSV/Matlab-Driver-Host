@@ -1,1 +1,1 @@
-{"format": "<A_Format_inline_file_or_json>", "name":"", "data": ""}
+{"format": "inline", "name":"", "data": ""}

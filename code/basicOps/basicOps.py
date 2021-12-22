@@ -125,15 +125,15 @@ def _polishCalculation(operation1, operand1, operand2, operation2=None, operand3
 	operands = operands[0:counter+1]
 	operands = [float(op) for op in operands]
 	
-	print(operands)
-	print(operations)
+	#print(operands)
+	#print(operations)
 	
 	_output = operands.pop()
 	next = operands.pop()
 
 	try:
 		for i, op in enumerate(operations):
-			print(_output)
+			#print(_output)
 			if(op is None or op == 'None'):
 				operands.insert(0,_output)
 				_output = operands.pop()
