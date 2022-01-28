@@ -46,7 +46,8 @@ def createTask(name, properties, code):
 		newFile = open('code/'+name +'/'+ name + '.py','w')
 		for line in templateFile:
 			if('#{userCode}' in line):
-				newFile.write(line.replace('#{userCode}', code))
+				for cline in code.splitlines():
+					newFile.write(line.replace('#{userCode}', '\t'+cline))
 			elif('{parameters}' in line):
 				newFile.write(line.replace('{parameters}', paramsSTR))
 			elif('{parametersInFunction}' in line):
@@ -92,11 +93,11 @@ def _properties_to_code(properties):
 def _translate_to_pythonTypes(type):
 	#TO DO: File must be checked also as a existing File or a existing File identifier
 	typeDict = {
-		'Number': 'float',
-		'Boolean': 'bool',
-		'String' : 'str',
-		'File'	 : 'str',
-		'Integer': 'int',
+		'number': 'float',
+		'boolean': 'bool',
+		'string' : 'str',
+		'file'	 : 'str',
+		'integer': 'int',
 		'OPTION' : 'str' 
 		}
 	return typeDict.get(type.split('[')[0])

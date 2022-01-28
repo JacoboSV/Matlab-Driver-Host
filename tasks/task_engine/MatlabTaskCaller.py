@@ -119,7 +119,12 @@ class MatlabTaskCaller(TaskCaller):
 			Path of the file to be used as input or the content of the file
 		'''
 		self.taskName = name
-		self.engine.clear(nargout=0)
+		# TO DO: poner esto como opcional en función del quien sea el usuario anterior y demas. Si es una tarea diferente no la mando me espero, si es la misma del mismo usuario. 
+		# Podría lanzarse un engine por usuario? Pensarlo.
+		# Una solucion: Las tareas seran unicas (de unica ejecucion) o de ejecucion mantenida (QUe pueden usar el mismo workspace). Si es de tipo único se borra antes y despues.
+		# Si es ejecuion mantenida no borra nada
+		# Segundo control, mirar si las tareas son del mismo usuario o de otro: Mirar como informar al servidor del usurio 
+		#self.engine.clear(nargout=0)
 		if(self.dynamic):
 			self.folderHandler.copyTasks(name)
 		self.folderHandler.savePreStatus()
