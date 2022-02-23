@@ -25,14 +25,15 @@ def runNode(taskCaller, taskname, content):
 	else:
 		ins = json.loads(content)
 	parameters = session.prepareParameters(ins, taskname)
-	print('Prepared parameters : {0}'.format(parameters))
-	response = session.runTask(taskname, parameters)
+	#print('Prepared parameters : {0}'.format(parameters))
+	response = session.runTask(taskname, parameters, content.get('expectedOutputs'))
 	return response
 
 
 @app.task(name=getMachineTaskName('nodoPython'))
 def nodoPython(taskname, content):
 	print("parameters = {0},{1}".format(taskname, content))
+	print('---------------------------------------------')
 	return runNode(PythonTaskCaller, taskname, content)
 
 @app.task
@@ -80,11 +81,11 @@ def _properties_to_code(properties):
 	checkcodelines = []
 	for prop in properties:
 		if('required' in prop.get('attributes') and 'input' in prop.get('attributes')):
-			paramType = _translate_to_pythonTypes(prop.get('type'))
+			paramType = _translate_to_pythonTypes(prop.get('type').lower())
 			checkcodelines.append('\tif(not isinstance({0},{1})):'.format(prop.get('name'),paramType))
 			checkcodelines.append('\t\t_error = "Parameter {0} is of incorrect type"'.format(prop.get('name')))
 		elif('input' in prop.get('attributes')):
-			paramType = _translate_to_pythonTypes(prop.get('type'))
+			paramType = _translate_to_pythonTypes(prop.get('type').lower())
 			checkcodelines.append('\tif({0} is not None and not isinstance({0},{1})):'.format(prop.get('name'),paramType))
 			checkcodelines.append('\t\t_error = "Parameter {0} is of incorrect type"'.format(prop.get('name')))
 	return checkcodelines
@@ -117,12 +118,15 @@ def binaryNode(taskname, content):
 	return runNode(BinaryTaskCaller, taskname, content)
 
 if __name__ == "__main__":
-	image = '{"format":"inline","name":"","data":"plus,2,3"}'
+	image = '{"variables":[{"name": "input1","type": "float", "subtype": "","location": "inline","data": 5.5},{"name": "input2","type": "array", "subtype": "","location": "inline","data": [1,2,3,4,5]},{"name": "input3","type": "file", "subtype": "txt","location": "server","data": "c:/Users/Jacob/.EjsConsole.txt"},{"name": "input4","type": "file", "subtype": "txt","location": "inline","data": "SmF2YVJvb3Q9Ckxhbmd1YWdlPUxvY2FsZQpVcGRhdGU9QUxXQVlTCkxhc3RVcGRhdGU9MTYyMTg1OTc2MTM0NgpJZ25vcmVVcGRhdGVWZXJzaW9uPQpNaW5pbWl6ZWQ9ZmFsc2UKWm9vbUxldmVsPTAKVXNlckRpcj1EOi9Vc2Vycy9Xb3Jrc3BhY2UvCkV4dGVybmFsQXBwcz1mYWxzZQpMb2FkTGFzdEZpbGU9ZmFsc2UKUHJvZ3JhbW1pbmdMYW5ndWFnZT1KQVZBU0NSSVBUCk1hdGxhYkRpcj0KVk1wYXJhbXM9LVhteDI1Nm0KQXJndW1lbnRzPQpMb29rQW5kRmVlbD1OaW1idXMKU2NyZWVuPTAKV2lkdGg9NzkzCkhlaWdodD0yODQK"}], "expectedOutputs":["a","b","c","d"]}'
+	
 	ins = json.loads(image)
-	response = nodoPython('basicOps._operation', ins)
-	print(json.dumps(response, indent=4, sort_keys=True)[0:500] + '(...)')
+	response = nodoPython('basicOps._tester', ins)
+	print(json.dumps(response, indent=4, sort_keys=True)[0:900] + '(...)')
 
-	image = '{"format":"inline","name":"","data":"maximum,2,3"}'
-	ins = json.loads(image)
-	response = binaryNode('basicOps._operation', ins)
-	print(json.dumps(response, indent=4, sort_keys=True)[0:500] + '(...)')
+	#===========================================================================
+	# image = '{"format":"inline","name":"","data":"maximum,2,3"}'
+	# ins = json.loads(image)
+	# response = binaryNode('basicOps._operation', ins)
+	# print(json.dumps(response, indent=4, sort_keys=True)[0:500] + '(...)')
+	#===========================================================================

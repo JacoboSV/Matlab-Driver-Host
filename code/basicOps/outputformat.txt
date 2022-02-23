@@ -1,1 +1,1 @@
-{"formats":{"_operation" : {"format": "json","name":"","data":""}, "_polishCalculation" : {"format": "json","name":"","data":""}, "_function" : {"format": "json","name":"","data":""}}}
+{"formats":{"_tester" : {"format": "json","name":"","data":""},"_operation" : {"format": "json","name":"","data":""}, "_polishCalculation" : {"format": "json","name":"","data":""}, "_function" : {"format": "json","name":"","data":""}}}

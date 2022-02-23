@@ -90,13 +90,17 @@ class remoteFolders(object):
 		dst : string
 			Path to the destination folder
 		'''
-		for root, dirs, files in os.walk(src):
-			for adir in dirs:
-				newfolder = os.path.join(root,adir).replace(src,dst)
-				self._createFolder(newfolder)
-			for afile in files:
-				newfile = os.path.join(root,afile).replace(src,dst)
-				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
+		try: 
+			for root, dirs, files in os.walk(src):
+				for adir in dirs:
+					newfolder = os.path.join(root,adir).replace(src,dst)
+					self._createFolder(newfolder)
+				for afile in files:
+					newfile = os.path.join(root,afile).replace(src,dst)
+					os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
+		except:
+			print('The files are already there')
+	
 	
 	def _createFolder(self, path):
 		''' Check and creates a folder if not there

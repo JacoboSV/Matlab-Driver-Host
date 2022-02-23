@@ -8,15 +8,30 @@ import json
 import math
 import traceback
 
+def _tester(input1, input2, input3, input4):
+	#===========================================================================
+	# print("input1",input1)
+	# print("input2",input2)
+	# print("input3",input3)
+	# print("input4",input4)
+	#===========================================================================
+	a = input1
+	b = input2
+	c = input3
+	d = input4
+	_output = (a,b,c,d)
+	
+	_error = "None"
+	return {"output": _output, "error": _error}
 
-def _operation(operation, operand1, operand2):
+def _operation(Operation, Operand1, Operand2):
 	_error = None
-	#print("operation: ",operation)
-	#print("operand1: ",operand1)
-	#print("operand2: ",operand2)
-	if(isinstance(operand1, str) or isinstance(operand2, str)):
-		operand1 = float(operand1)
-		operand2 = float(operand2)
+	#print("Operation: ",Operation)
+	#print("Operand1: ",Operand1)
+	#print("Operand2: ",Operand2)
+	if(isinstance(Operand1, str) or isinstance(Operand2, str)):
+		Operand1 = float(Operand1)
+		Operand2 = float(Operand2)
 		
 	OPERATIONS = {
 		"plus": lambda a,b : a+b,
@@ -32,23 +47,23 @@ def _operation(operation, operand1, operand2):
 		"maximum": lambda a, b : _numpy.maximum(a, b),
 	}
 
-	if("divided by" in operation):
-		if (operand2==0):
+	if("divided by" in Operation):
+		if (Operand2==0):
 			_output = "Err"
 			_error = "Operand 2 can't be 0"
-			return {"output": _output, "error": _error}
+			return {"output": [_output], "error": _error}
 	
 	try: 
-		_output = OPERATIONS[operation](operand1, operand2)
+		_output = OPERATIONS[Operation](Operand1, Operand2)
 	except Exception as e:
 		_output = "Err"
-		print("Operation not valid: expected 'plus', 'minus', 'times', 'divided by', <,>,= or != got : ", str(operation))
-		print("Operation not valid: expected numeric inputs, got : operand 1: " + str(operand1) + ", operand2: " + str(operand1) + "")
+		print("Operation not valid: expected 'plus', 'minus', 'times', 'divided by', <,>,= or != got : ", str(Operation))
+		print("Operation not valid: expected numeric inputs, got : operand 1: " + str(Operand1) + ", Operand2: " + str(Operand1) + "")
 		_error = "Exception captured. Error: " + str(e) 
 		traceback.print_exc()
-	return {"output": _output, "error": _error}
+	return {"output": [_output], "error": _error}
 
-def _function(_operation, operand):
+def _function(Operation, Operand):
 	_error = None
 	FUNCTIONS = {
 		'exp':  lambda a : math.exp(a),
@@ -56,28 +71,28 @@ def _function(_operation, operand):
 		'log':  lambda a : math.log(a)
 	}
 	
-	if(isinstance(operand, str)):
-		operand = float(operand)
+	if(isinstance(Operand, str)):
+		Operand = float(Operand)
 
-	if("sqrt" in _operation and operand<0):
+	if("sqrt" in Operation and Operand<0):
 		_output = "Err"
 		_error = "Operand must be zero or bigger"
-		return {"output": _output, "error": _error}
-	elif("log" in _operation and operand<=0):
+		return {"output": [_output], "error": _error}
+	elif("log" in Operation and Operand<=0):
 		_output = "Err"
 		_error = "Operand must by bigger than 0"
-		return {"output": _output, "error": _error}
+		return {"output": [_output], "error": _error}
 	try: 
-		_output = FUNCTIONS[_operation](operand)
+		_output = FUNCTIONS[Operation](Operand)
 	except Exception as e:
 		_output = "Err"
-		print("Operation not valid: expected 'exp', 'log' or 'sqrt', got : ", str(_operation))
-		print("Operation not valid: expected numeric input, got : operand 1: ", str(operand))
+		print("Operation not valid: expected 'exp', 'log' or 'sqrt', got : ", str(Operation))
+		print("Operation not valid: expected numeric input, got : Operand 1: ", str(Operand))
 		_error = "Exception captured. Error: " + str(e) 
 	
-	return {"output": _output, "error": _error}
+	return {"output": [_output], "error": _error}
 
-def _polishCalculation(operation1, operand1, operand2, operation2=None, operand3=None, operation3=None, operand4=None, operation4=None, operand5=None, operation5=None, operand6=None, operation6=None, operand7=None, operation7=None, operand8=None):
+def _polishCalculation(Operation1, Operand1, Operand2, Operation2=None, Operand3=None, Operation3=None, Operand4=None, Operation4=None, Operand5=None, Operation5=None, Operand6=None, Operation6=None, Operand7=None, Operation7=None, Operand8=None):
 	OPERATIONS = {
 		'plus':         lambda a, b : a + b,
 		'minus':        lambda a, b : a - b,
@@ -97,8 +112,8 @@ def _polishCalculation(operation1, operand1, operand2, operation2=None, operand3
 		}
 	_error = None
 
-	operands = [operand1,operand2,operand3,operand4,operand5,operand6,operand7,operand8]
-	operations = [operation1,operation2,operation3,operation4,operation5,operation6,operation7]
+	operands = [Operand1,Operand2,Operand3,Operand4,Operand5,Operand6,Operand7,Operand8]
+	operations = [Operation1,Operation2,Operation3,Operation4,Operation5,Operation6,Operation7]
 	#operations = [op for op in operations if op]
 	
 	counter = len(operations)-1
@@ -153,5 +168,5 @@ def _polishCalculation(operation1, operand1, operand2, operation2=None, operand3
 		print("Operation not valid: expected numeric input")
 		print(traceback.print_exc())
 		_error = "Exception captured. Error: " + str(e) 
-	return {"output": _output, "error": _error}
+	return {"output": [_output], "error": _error}
 	

@@ -4,7 +4,7 @@ import traceback
 
 
 def userMethod({parameters}, outputWanted = 'Result'):
-	_error = "Code do nothing"
+	_error = ""
 	_output = None
 	_output = {"output": _output, "error": _error}
 	errorCode = ""
@@ -38,7 +38,7 @@ def run({parameters}, outputWanted = None):
 	# Do not use "_" when defining variables
 	#______________ Example __________________
 	outputs = {}
-	#{userCode}
+#{userCode}
 	#________________________________
 	if(outputWanted is None or outputWanted not in outputs):
 		return outputs

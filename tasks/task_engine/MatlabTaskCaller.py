@@ -109,7 +109,7 @@ class MatlabTaskCaller(TaskCaller):
 				self.log(str(e))
 		self.log('User cancelled the task')
 				
-	def runTask(self,name,args):
+	def runTask(self,name,args,expectedOuts = None):
 		''' Runs a task by its name and using the sent parameters
 		Attributes
 		----------
@@ -149,6 +149,18 @@ class MatlabTaskCaller(TaskCaller):
 			except Exception as e:
 				print('Error : ' + str(e))
 				variables = 'Error'
+
+	def saveOutputsLocally(self,outputsNames):
+		''' 
+		Attributes
+		----------
+		name : list
+			List of names of the variables generated while running the task, it must contain the exact names used in the task
+		'''
+		filename = 'LocalOutputs'
+		command = 'save({0},{1})'.format(filename,','.join(outputsNames))
+		command = 'save(' + filename + ',' +','.join(outputsNames)+')'
+		self.engine.eval(command)
 
 	def closeMLSession(self):
 		''' Closes a Matlab session using the self.engine or connecting to one

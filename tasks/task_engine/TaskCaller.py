@@ -33,7 +33,7 @@ class TaskCaller(object):
 		self.folderHandler.saveIO(data, self.outIO)
 		if(self.dynamic):
 			outputs = self.formatOutputs(data)
-			print(outputs)
+			#print(outputs)
 			return outputs
 		else:
 			self.folderHandler._zipOutputs(keepFolderTree = True)
@@ -68,12 +68,32 @@ class TaskCaller(object):
 		pass
 		
 	def prepareParameters(self,params, task = None):
-		self.log('Params format: ' + str(params['format']))
+		#self.log('Params format: ' + str(params['format']))
 		path = self.folderHandler.runFolder
 		return self.formatter.formatInputs(params, task, path)
+	
+	@abstractmethod
+	def saveOutputsLocally(self,outputsNames):
+		''' 
+		Attributes
+		----------
+		outputsNames : list
+			List of names of the variables generated while running the task, it must contain the exact names used in the task
+		'''
 		
 	@abstractmethod
-	def runTask(self, name, args):
+	def loadInputsLocally(self,inputPath, variableToLoad=None):
+		''' 
+		Attributes
+		----------
+		inputPath : string
+			Path where the file that contains the variables has been saved 
+		variableToLoad: string
+			Name or list of names of the variables to load while running the task to be used as inputs, it must contain the exact names used in the task that collected it
+		'''
+		
+	@abstractmethod
+	def runTask(self, name, args, expectedOuts = None):
 		''' Runs a task by its name and using the sent parameters
 		Attributes
 		----------

@@ -3,6 +3,8 @@ import base64
 import json
 import os
 import time
+import numpy as np
+import base64
 
 class IOFormatter(object):
 	"""
@@ -30,6 +32,37 @@ class IOFormatter(object):
 			'json'   : self._get_Json_Output,
 			'bundle' : self._get_Bundle_Output
 		}
+		self.CASTERS = {
+			'bool' : bool,
+			'string'   : str,
+			'float' : float,
+			'number' : float,
+			'double'   : float,
+			'integer' : int,
+			'array' : list,
+			'nparray' : np.array,
+			'matrix' : list,
+			'npmatrix' : np.array,
+			'file' : self._b64_to_file,
+			'option': self.castStr,
+			'any': self.castStr
+			}
+		self.LOCATORS = {
+			'bool' : str,
+			'string'   : str,
+			'float' : str,
+			'number' : str,
+			'double'   : str,
+			'integer' : str,
+			'array' : str,
+			'nparray' : str,
+			'matrix' : str,
+			'npmatrix' : str,
+			'file' : self.locateFile,
+			'option': str,
+			'any': str
+			}
+		
 		self.IOSTR = {
 			"format" : "",
 			"name"   : "",
@@ -45,6 +78,9 @@ class IOFormatter(object):
 				}
 			}
 		}
+
+	def castStr(self,strChain):
+		return str(strChain).strip('"').strip("'")
 
 	def getName(self):
 		return self.IOSTR["name"]
@@ -91,6 +127,7 @@ class IOFormatter(object):
 		self.IOSTR["data"] = data
 
 	def initializeIOSTR(self,ioput):
+		self.inputs = ioput
 		self.setName(ioput["name"])
 		self.setFormat(ioput["format"])
 		self.setData(ioput["data"])
@@ -104,7 +141,8 @@ class IOFormatter(object):
 		outputFile = os.path.join(path, 'outputformat.txt')
 		with open(outputFile) as json_file:
 			outputFormats = json.load(json_file)
-			#When task is a Python task it is written: <library>.<method>. The file outputFile, contain the formats for all the available methods in an array structure. This code read the method, and returns the right format
+			#When task is a Python task it is written: <library>.<method>. The file outputFile, contain the formats 
+			#for all the available methods in an array structure. This code read the method, and returns the right format
 			if('.' in task):
 				module_method = task.split('.')
 				#lib = module_method[0]
@@ -117,10 +155,25 @@ class IOFormatter(object):
 	
 	def formatInputs(self, params, task, path):
 		self.task = task
-		self.initializeIOSTR(params)
-		self.inputs = params
-		self.setFormat(params['format'])
-		return self.INPUT_HANDLER[self.getFormat()](path)
+		#self.initializeIOSTR(params)
+		#return self.INPUT_HANDLER[self.getFormat()](path)
+		args = {}
+		for variable in params['variables']:
+			paramType =  variable['type'].lower().split('[')[0]
+			paramName = variable['name']
+			if('location' in variable and 'server' in paramLoc):
+				paramLoc = variable['location']
+				if('file' in paramType):
+					values = self.LOCATORS[paramType](variable['data'])
+				else:
+					values = self.LOCATORS[paramType](paramName)
+			else:
+				if('file' in variable['type']):
+					values = self.CASTERS[paramType](paramName+'.'+variable['subtype'],variable['data'])
+				else:
+					values = self.CASTERS[paramType](variable['data'])
+			args[paramName] = values
+		return args
 		
 	def formatOutputs(self, runPath, resultsPath, data, files=None, duration=0, startTime="", stopTime=""):
 		expectedOutput = self.readOutputFormat(runPath, self.task)
@@ -157,30 +210,30 @@ class IOFormatter(object):
 			filename = path + '/input_file.mat'
 			self._b64_to_file(filename,self.getData())
 		return os.path.abspath(filename)
-	
+
 	def _get_File_Output(self,runfolder, resultfolder = None,data = None):
 		path2file = self.locateFile(self.getName(),runfolder)
 		return self.populateOutData(self.serializeFile(path2file))
-		
+
 	def _get_Inline_Output(self,runfolder = None, resultfolder = None,data = None):
 		if(isinstance(data,dict)):
 			outvalues = data
 		else:
 			outvalues = str(data)
 		return self.populateOutData(outvalues)
-		
+
 	def _get_Json_Output(self, runfolder=None, resultfolder=None, data=None):
 		if(isinstance(data, dict)):
 			outvalues = data
 		else:
 			outvalues = json.loads(data)
 		return self.populateOutData(outvalues)
-	
+
 	def _get_Bundle_Output(self,runfolder,resultfolder,data = None):
 		path2file = self.locateFile(self.IOSTR['name'],resultfolder)
 		filebytes = self.serializeFile(path2file)
 		return self.populateOutData(filebytes)
-	
+
 	@staticmethod
 	def _evalTypes(val):
 		try:
@@ -188,12 +241,15 @@ class IOFormatter(object):
 		except ValueError:
 			pass
 		return val
-	
-	def _b64_to_file(self,filename,data):
-		out_file = open(filename, "wb") 
-		out_file.write(base64.b64decode(data))
-		out_file.close()
-	
+
+	def _b64_to_file(self,name,data):
+		tempFolder = './var/temp/'
+		path = tempFolder+name
+		fh = open(path, 'wb')
+		fh.write(base64.b64decode(data))
+		fh.close()
+		return os.path.abspath(path)
+
 	def serializeFile(self,filepath):
 		with open(filepath, 'rb') as f:
 			data = base64.b64encode(f.read())
@@ -201,13 +257,14 @@ class IOFormatter(object):
 		return datastring
 
 	def locateFile(self,what,where = None):
+		#print("File location: ", what)
 		if(where):
 			for files in os.listdir(where):
 				if(what in str(files)):
 					return os.path.abspath(os.path.join(where,files))
 		else:
-			if(os.path.isdir(what)):
-				return os.path.abspath(os.path.join(what,files))
+			if(os.path.isfile(what)):
+				return os.path.abspath(what)
 			else:
 				return None
 		return None
