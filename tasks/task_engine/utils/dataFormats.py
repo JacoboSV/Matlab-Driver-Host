@@ -150,7 +150,7 @@ class IOFormatter(object):
 				self.outputformat = outputFormats['formats'][meth]
 				return outputFormats['formats'][meth]
 			else:
-				self.outputformat = outputFormats
+				self.outputformat = outputFormats['formats'][task]
 				return self.outputformat
 	
 	def formatInputs(self, params, task, path):

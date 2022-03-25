@@ -2,7 +2,19 @@ from .task_engine.MatlabTaskCaller import MatlabTaskCaller
 from .task_engine.utils.remoteFolders import remoteFolders
 from .task_engine.utils.dataFormats import IOFormatter
 import json
+from celery import Celery
+import os
+import traceback
+import matlab.engine
 
+APP_PREFIX = 'tasks'
+#NODE_NAME  = os.getenv('NODE_NAME')
+NODE_NAME = 'worker_Matlab'
+#app = Celery('worker')
+app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_servermatlab')
+
+def getMachineTaskName(taskname):
+	return '{0}.{1}.{2}'.format(APP_PREFIX, NODE_NAME, taskname)
 
 @app.task
 def echo(content):
@@ -24,6 +36,15 @@ def label(content):
 
 
 @app.task
+def testme(testvariable):
+	response = matlab.engine.find_matlab()
+	engine = matlab.engine.connect_matlab()
+	result = engine.eval('matlabEcho('+testvariable+')',background=True,nargout = 1)
+	response = result.result()
+	return response
+
+
+@app.task(name=getMachineTaskName('nodoMatlab'))
 def nodoMatlab(taskname, content):
 	if(taskname is None):
 		return {}
@@ -43,6 +64,7 @@ def nodoMatlab(taskname, content):
 def createTask(name, properties, code):
 	try:	
 		paramsSTR = _properties_to_params(properties)
+		outsSTR = _properties_to_outputs(properties)
 		paramsCheckCode = _properties_to_code(properties)
 		templateFile = open('code/template/template.m')
 		if not os.path.exists('code/'+name):
@@ -53,7 +75,13 @@ def createTask(name, properties, code):
 				for cline in code.splitlines():
 					newFile.write(line.replace('#{userCode}', '\t'+cline))
 			elif('{parameters}' in line):
-				newFile.write(line.replace('{parameters}', paramsSTR))
+				line = line.replace('{parameters}', paramsSTR)
+				if('{taskName}' in line):
+					newFile.write(line.replace('{taskName}', name))
+				else:
+					newFile.write(line)
+			elif('#{outputsCode}' in line):
+				newFile.write(line.replace('#{outputsCode}', outsSTR))
 			elif('{parametersInFunction}' in line):
 				params_in_call = paramsSTR.replace(' = None','')
 				newFile.write(line.replace('{parametersInFunction}', params_in_call))
@@ -69,6 +97,14 @@ def createTask(name, properties, code):
 		print('Exception when creating new task')
 		print(traceback.format_exc())
 		return {'error': True, 'errorCode': str(e)}
+
+def _properties_to_outputs(properties):
+	propsList = []
+	for prop in properties:
+		if('required' in prop.get('attributes') and 'output' in prop.get('attributes')):
+			propsList.append("'" + prop.get('name') + "'," + prop.get('name'))
+	outsSTR = 'struct('+ ','.join(propsList)+')'
+	return outsSTR
 
 def _properties_to_params(properties):
 	propsList = []
@@ -106,6 +142,9 @@ def _translate_to_pythonTypes(type):
 	#TO DO: File must be checked also as a existing File or a existing File identifier
 	typeDict = {
 		'number': '"float"',
+		'array': '"double"',
+		'list': '"double"',
+		'matrix': '"double"',
 		'boolean': '"logical"',
 		'string' : '"char"',
 		'file'	 : '"char"',
@@ -116,7 +155,11 @@ def _translate_to_pythonTypes(type):
 
 def _createFormatFiles(name):
 	inputFormat = {'data': '', 'name': '', 'format': 'inline'}
-	outputFormat = {"formats": {'userMethod' : {'data': '', 'name': '', 'format': 'json'}}}
+	outputFormat = {}
+	userMethod = {'data': '', 'name': '', 'format': 'json'}
+	userFormat = {}
+	userFormat[name] = userMethod
+	outputFormat['formats'] = userFormat
 	newInputFF = open('code/'+name +'/inputformat.txt','w')
 	newInputFF.write(json.dumps(inputFormat))
 	newOutputFF = open('code/'+name +'/outputformat.txt','w')

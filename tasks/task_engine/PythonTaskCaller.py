@@ -45,6 +45,7 @@ class PythonTaskCaller(TaskCaller):
 			os.chdir(prevDir)
 			
 			outputsNames = {}
+			print("expectedOuts",expectedOuts)
 			for counter, key in enumerate(expectedOuts):
 				outputsNames[key] = self.asyncTask.get('output')[counter]
 			self.saveOutputsLocally(outputsNames)

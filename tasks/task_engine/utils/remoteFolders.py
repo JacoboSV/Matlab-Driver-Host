@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 import base64
+import traceback
 
 class remoteFolders(object):
 	"""
@@ -98,7 +99,8 @@ class remoteFolders(object):
 				for afile in files:
 					newfile = os.path.join(root,afile).replace(src,dst)
 					os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
-		except:
+		except Exception as e:
+			print(traceback.format_exc())
 			print('The files are already there')
 	
 	

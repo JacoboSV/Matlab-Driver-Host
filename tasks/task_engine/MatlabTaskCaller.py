@@ -19,7 +19,7 @@ class MatlabTaskCaller(TaskCaller):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self,taskID, folderHandler, formatter, dynamic =False, sessionID = None, verbose = False):
+	def __init__(self,taskID, folderHandler, formatter, dynamic =False, sessionID = None, verbose = True):
 		super().__init__(taskID, folderHandler, formatter, dynamic, verbose)
 		if(sessionID is not None):
 				self.log('Session defined')
@@ -77,6 +77,7 @@ class MatlabTaskCaller(TaskCaller):
 				time.sleep(0.1)
 			else:
 				time.sleep(10)
+		self.log('Task finished')
 		variables = self.asyncTask.result()
 		self.log('Output Variables : ' + str(variables))
 		self.engine.close('all')
@@ -87,6 +88,10 @@ class MatlabTaskCaller(TaskCaller):
 			self.folderHandler.savePostStatus()
 			self.folderHandler.saveIO(variables,self.outIO)
 			outputs = self.formatOutputs(variables)
+			#print("expectedOuts",self.expectedOuts)
+			#for counter, key in enumerate(self.expectedOuts):
+			#	outputsNames[key] = self.asyncTask.get('output')[counter]
+			#self.saveOutputsLocally(outputsNames)
 			return outputs
 		else:
 			self.folderHandler.savePostStatus()
@@ -119,6 +124,7 @@ class MatlabTaskCaller(TaskCaller):
 			Path of the file to be used as input or the content of the file
 		'''
 		self.taskName = name
+		self.expectedOuts = expectedOuts
 		# TO DO: poner esto como opcional en función del quien sea el usuario anterior y demas. Si es una tarea diferente no la mando me espero, si es la misma del mismo usuario. 
 		# Podría lanzarse un engine por usuario? Pensarlo.
 		# Una solucion: Las tareas seran unicas (de unica ejecucion) o de ejecucion mantenida (QUe pueden usar el mismo workspace). Si es de tipo único se borra antes y despues.
@@ -128,9 +134,11 @@ class MatlabTaskCaller(TaskCaller):
 		if(self.dynamic):
 			self.folderHandler.copyTasks(name)
 		self.folderHandler.savePreStatus()
+		userpath = os.path.abspath(str(self.folderHandler.runFolder))
 		self.log('Using user path: ' + str(str(self.folderHandler.runFolder)))
-		addpath = 'userpath("' + os.path.abspath(str(self.folderHandler.runFolder)) + '")'
+		addpath = 'userpath("' + userpath  + '")'
 		self.engine.eval(addpath,background = True,nargout=0)
+		self.engine.eval('cd ' + userpath,background = True,nargout=0)
 		self.log('Task : ' + str(name) + ' and params : ' + str(args))
 		if('exit' in name):
 			self.closeMLSession()
@@ -144,8 +152,9 @@ class MatlabTaskCaller(TaskCaller):
 					else:
 						command = name + "('" + args + "')"
 				else:
-					command = name + '(' + ','.join(str(x) for x in args) + ')'
-				self.asyncTask = self.engine.eval(command, nargout=numberouts,stdout=self.outIO,stderr=self.errIO,background = True)
+					command = name + '(' + ','.join(str(args[x]) for x in args) + ')'
+				self.log('Command to use: '+ command)
+				self.asyncTask = self.engine.eval(command, nargout=numberouts,background = True)
 			except Exception as e:
 				print('Error : ' + str(e))
 				variables = 'Error'

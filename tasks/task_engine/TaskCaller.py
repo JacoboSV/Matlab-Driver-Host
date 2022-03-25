@@ -7,7 +7,7 @@ from datetime import datetime
 class TaskCaller(object):
 
 
-	def __init__(self, taskID, folderHandler, formatter, dynamic=False, verbose=False):
+	def __init__(self, taskID, folderHandler, formatter, dynamic=False, verbose=True):
 		self.dynamic = dynamic
 		self.verbose = verbose
 		self.outIO = io.StringIO()

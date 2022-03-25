@@ -8,8 +8,10 @@ import os
 import traceback
 
 APP_PREFIX = 'tasks'
-NODE_NAME  = os.getenv('NODE_NAME')
-app = Celery('worker')
+#NODE_NAME  = os.getenv('NODE_NAME')
+NODE_NAME = 'worker_Python'
+#app = Celery('worker')
+app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_serverpython')
 
 def getMachineTaskName(taskname):
 	return '{0}.{1}.{2}'.format(APP_PREFIX, NODE_NAME, taskname)
@@ -94,12 +96,15 @@ def _properties_to_code(properties):
 def _translate_to_pythonTypes(type):
 	#TO DO: File must be checked also as a existing File or a existing File identifier
 	typeDict = {
-		'number': 'float',
-		'boolean': 'bool',
-		'string' : 'str',
-		'file'	 : 'str',
-		'integer': 'int',
-		'OPTION' : 'str' 
+		'number': '"float"',
+		'array': '"list"',
+		'list': '"list"',
+		'matrix': '"list"',
+		'boolean': '"logical"',
+		'string' : '"char"',
+		'file'	 : '"char"',
+		'integer': '"integer"',
+		'OPTION' : '"char"' 
 		}
 	return typeDict.get(type.split('[')[0])
 

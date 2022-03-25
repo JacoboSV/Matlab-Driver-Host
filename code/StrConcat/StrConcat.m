@@ -1,4 +1,4 @@
-function output = {taskName}({parameters},outputWanted)
+function output = StrConcat(str1,str2,outputWanted)
 	error = "";
 	output = 'None';
 	errorCode = "";
@@ -7,9 +7,14 @@ function output = {taskName}({parameters},outputWanted)
 		outputWanted =  'None';
 	end
 	%if the variable errorCode is defined in this code it will appear if an exception is catched
-	{Check params}
+	if(~ isa(str1,"char"))
+		error = "Parameter str1 is of incorrect type;"
+end
+	if(~ isa(str2,"char"))
+		error = "Parameter str2 is of incorrect type;"
+end
 	try
-		values = run({parametersInFunction}, outputWanted);
+		values = run(str1,str2, outputWanted);
 		output = checkTypes(values)
 	catch e
 		output = "Err";
@@ -36,13 +41,15 @@ end
 
 
 
-function valuesFromUserCode = run({parameters},outputWanted)
+function valuesFromUserCode = run(str1,str2,outputWanted)
 	% Main user code goes here
 	% Do not use "_" when defining variables
 	%______________ Code __________________
-	#{userCode}
+		disp(str1)
+		disp(str2)
+		strout = strcat(str1,str2)
 	%________________________________
 	
-	valuesFromUserCode =  #{outputsCode};
+	valuesFromUserCode =  struct('strout',strout);
 
 end
