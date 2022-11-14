@@ -8,10 +8,11 @@ import os
 import traceback
 
 APP_PREFIX = 'tasks'
-#NODE_NAME  = os.getenv('NODE_NAME')
-NODE_NAME = 'worker_Python'
-#app = Celery('worker')
-app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_serverpython')
+NODE_NAME  = os.getenv('NODE_NAME')
+#Test
+#app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_server')
+#app = Celery('worker', backend='rpc://', broker='amqp://guest:guest@10.191.6.22/rabbitmq')
+app = Celery('worker')
 
 def getMachineTaskName(taskname):
 	return '{0}.{1}.{2}'.format(APP_PREFIX, NODE_NAME, taskname)
@@ -27,7 +28,7 @@ def runNode(taskCaller, taskname, content):
 	else:
 		ins = json.loads(content)
 	parameters = session.prepareParameters(ins, taskname)
-	#print('Prepared parameters : {0}'.format(parameters))
+	print('Prepared parameters : {0}'.format(parameters))
 	response = session.runTask(taskname, parameters, content.get('expectedOutputs'))
 	return response
 

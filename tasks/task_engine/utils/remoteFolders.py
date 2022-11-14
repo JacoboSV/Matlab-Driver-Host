@@ -22,7 +22,7 @@ class remoteFolders(object):
 	def __init__(self, taskID = None):
 		self.preStatus = []
 		self.postStatus = []
-		self.prefix = 'ciemat'
+		self.prefix = 'computation'
 		self.paths = {
 			'run'    : './var/run/',
 			'results': './var/results/',

@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np
 import base64
+from .outputHTMLCreator import OutputHTMLCreator
 
 class IOFormatter(object):
 	"""
@@ -19,6 +20,7 @@ class IOFormatter(object):
 		self.outputformat = ''
 		self.inputs = ''
 		self.outputs = ''
+		self.htmlCreator = OutputHTMLCreator()
 		self.INPUT_HANDLER = {
 			'matlab' : self._get_Matlab_Input,
 			'file'   : self._get_File_Input,
@@ -132,10 +134,12 @@ class IOFormatter(object):
 		self.setFormat(ioput["format"])
 		self.setData(ioput["data"])
 		
-	def readInputFormat(self,path):
-		with open(path) as json_file:
-			self.inputformat = json.load(json_file)
-			return self.inputformat
+	#===========================================================================
+	# def readInputFormat(self,path):
+	# 	with open(path) as json_file:
+	# 		self.inputformat = json.load(json_file)
+	# 		return self.inputformat
+	#===========================================================================
 			
 	def readOutputFormat(self,path,task):
 		outputFile = os.path.join(path, 'outputformat.txt')
@@ -183,7 +187,19 @@ class IOFormatter(object):
 		self.setDuration(duration)
 		self.setStartTime(startTime)	
 		self.setStopTime(stopTime)
-		return self.OUTPUT_HANDLER[self.getFormat()](runPath, resultsPath, data)
+		formattedOutput = self.OUTPUT_HANDLER[self.getFormat()](runPath, resultsPath, data)
+		nodeNumber = 0
+		self.htmlCreator.create(formattedOutput, fromDB = False, fromFile = False, nodeNumber = nodeNumber)
+		htmlText = self.htmlCreator.getHTMLasString()
+		scappedHtmlText = self.addScapeChars(htmlText)
+		formattedOutput["info"]["html"] = scappedHtmlText
+		return formattedOutput
+	
+	def addScapeChars(text):
+		for ch in ['\\','`','*','_','{','}','[',']','(',')','>','#','+','-','.','!','$','\'']:
+			if ch in text:
+				text = text.replace(ch,"\\"+ch)
+		return text
 	
 	def populateOutData(self, data):
 		self.IOSTR['data'] = data

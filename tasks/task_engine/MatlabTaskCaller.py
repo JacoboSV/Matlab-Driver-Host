@@ -132,6 +132,7 @@ class MatlabTaskCaller(TaskCaller):
 		# Segundo control, mirar si las tareas son del mismo usuario o de otro: Mirar como informar al servidor del usurio 
 		#self.engine.clear(nargout=0)
 		if(self.dynamic):
+
 			self.folderHandler.copyTasks(name)
 		self.folderHandler.savePreStatus()
 		userpath = os.path.abspath(str(self.folderHandler.runFolder))
@@ -145,19 +146,46 @@ class MatlabTaskCaller(TaskCaller):
 		else:
 			numberouts = int(self.engine.nargout(name))
 			self.log('outs expected: ' + str(numberouts))
+			args = self.addQuotesToStrings(args)
 			try:
-				if(isinstance(args,str)):
-					if("'" in args):
-						command = name + '("' + args + '")'
-					else:
-						command = name + "('" + args + "')"
-				else:
-					command = name + '(' + ','.join(str(args[x]) for x in args) + ')'
+				print("args: ", args)
+				command = name + '(' + ','.join(str(x) for x in args) + ')'
 				self.log('Command to use: '+ command)
 				self.asyncTask = self.engine.eval(command, nargout=numberouts,background = True)
 			except Exception as e:
 				print('Error : ' + str(e))
 				variables = 'Error'
+
+	def checkVarInWorkspace(self,variableName):
+		checkvars = 'exist("' + variableName + '")'
+		self.log('Checking if ' + str(variableName) + ' exist')
+		isdefined = self.engine.eval(checkvars, nargout=1,background = True)
+		while (not isdefined.done()):
+			time.sleep(0.2)
+			self.log('waiting...')
+		isVarDef = bool(isdefined.result())
+		self.log(' --- ' + variableName + ' exist? ' + str(isVarDef))
+		return isVarDef
+
+	def addQuotesToStrings(self,args):
+		self.log("args: " + str(args))		
+		quoted = []
+		varNames = [str(args[x]) for x in args] 
+		self.log("varNames: " + str(varNames))
+		for varname in varNames:
+			if(isinstance(varname,str)):
+				isdefined = self.checkVarInWorkspace(varname)
+				if(isdefined):
+					quoted.append(varname)
+				else:
+					if("'" in args):
+						quoted.append('"' + varname + '"')
+					else:
+						quoted.append("'" + varname + "'")
+			else:
+				quoted.append(varname)
+		return quoted
+
 
 	def saveOutputsLocally(self,outputsNames):
 		''' 

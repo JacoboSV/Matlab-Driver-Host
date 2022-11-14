@@ -11,7 +11,8 @@ APP_PREFIX = 'tasks'
 #NODE_NAME  = os.getenv('NODE_NAME')
 NODE_NAME = 'worker_Matlab'
 #app = Celery('worker')
-app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_servermatlab')
+app = Celery('worker', backend='rpc://', broker='amqp://fusion:fusion@127.0.0.1/fusion_server')
+#app = Celery('worker', backend='rpc://', broker='amqp://guest:guest@10.191.6.22/rabbitmq')
 
 def getMachineTaskName(taskname):
 	return '{0}.{1}.{2}'.format(APP_PREFIX, NODE_NAME, taskname)
