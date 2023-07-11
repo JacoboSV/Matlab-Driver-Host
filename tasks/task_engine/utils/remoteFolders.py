@@ -3,6 +3,7 @@ import shutil
 import zipfile
 import base64
 import traceback
+import datetime
 
 class remoteFolders(object):
 	"""
@@ -19,52 +20,31 @@ class remoteFolders(object):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self, taskID = None):
+	def __init__(self, userDataPath = './', language = 'python'):
 		self.preStatus = []
 		self.postStatus = []
-		self.prefix = 'computation'
+		self.userDataPath = userDataPath
+		self.prefix = 'lab_'
 		self.paths = {
 			'run'    : './var/run/',
 			'results': './var/results/',
-			'tasks'  : './code/',
+			'code'  : './code/',
 			'temp'   : './var/temp/',
+			'userDataPath'   : userDataPath,
 		}
 		[self._createFolder(self.paths[p]) for p in self.paths]
-		if(taskID is None):
-			self.taskID = self._obtainNextPath2Save()
-		else:
-			self.taskID = taskID
+		self.taskID = self._obtainNextPath2Save()
 		self.runFolder = self.paths['run'] + self.prefix + str(self.taskID)
 		self.resultsFolder = self.paths['results'] + self.prefix + str(self.taskID)
+		self.user = self.userDataPath.split('_')[0].split('/')[-1]
+		if(language == 'python'):
+			self.addUserLibsAsPackage()
 	
 	def setRunFolder(self, newRunFolder):
 		self.runFolder = newRunFolder
 		
 	def setResultsFolder(self, newResultsFolder):
 		self.resultsFolder = newResultsFolder
-	
-	def get_input_format_path(self, task):
-		return self.runFolder+'/inputformat.txt'
-		
-	def get_output_format_path(self, task):
-		return self.runFolder+'/outputformat.txt'
-
-	def locateParamsFile(self, params):
-		''' Locates the input file in the local folder and returns the path
-		Attributes
-		----------
-		params : string
-			Complete name or prefix to identify an input file
-		'''
-		temporalFolder = os.path.abspath(self.paths['temp'])
-		for files in os.listdir(temporalFolder):
-			if(params in str(files)):
-				return os.path.abspath(os.path.join(temporalFolder, files))
-		#If not there, try in the main folder
-		for files in os.listdir('./'):
-			if(params in str(files)):
-				return os.path.abspath(os.path.join('./', files))
-		return None
 
 	def _obtainNextPath2Save(self):
 		''' Looks for a valid name to a new run folder
@@ -79,7 +59,7 @@ class remoteFolders(object):
 		path2Save = self.paths['run'] + self.prefix + str(taskID)
 		while(os.path.isdir(path2Save)):
 			taskID = taskID + 1
-			path2Save = self.paths['run'] + 'ciemat' + str(taskID)
+			path2Save = self.paths['run'] + self.prefix + str(taskID)
 		return taskID
 	
 	def _makeSymLinks(self,src,dst):
@@ -91,17 +71,13 @@ class remoteFolders(object):
 		dst : string
 			Path to the destination folder
 		'''
-		try: 
-			for root, dirs, files in os.walk(src):
-				for adir in dirs:
-					newfolder = os.path.join(root,adir).replace(src,dst)
-					self._createFolder(newfolder)
-				for afile in files:
-					newfile = os.path.join(root,afile).replace(src,dst)
-					os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
-		except Exception as e:
-			print(traceback.format_exc())
-			print('The files are already there')
+		for root, dirs, files in os.walk(src):
+			for adir in dirs:
+				newfolder = os.path.join(root,adir).replace(src,dst)
+				self._createFolder(newfolder)
+			for afile in files:
+				newfile = os.path.join(root,afile).replace(src,dst)
+				os.symlink(os.path.abspath(os.path.join(root,afile)),os.path.abspath(newfile))
 	
 	
 	def _createFolder(self, path):
@@ -142,14 +118,6 @@ class remoteFolders(object):
 				for f in filenames:
 					self.postStatus.append(os.path.abspath(os.path.join(dirpath, f)))
 	
-	def copyTasks(self, task):
-		''' Creates symbolic links to the task files in the folder in <rootTasksFolder>
-		----------
-		task : string
-			Name of the task or script to be executed
-		'''
-		self._makeSymLinks(self.paths['tasks'] + task, self.runFolder)
-	
 	def checkCreateFolders(self):
 		''' Create the main folders needed to run the scripts and store outputs
 		'''
@@ -160,16 +128,23 @@ class remoteFolders(object):
 		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
 		'''
 		added = self.getNewFilesPath()
-
 		for newfile in added:
 			dstfile = newfile.replace(os.path.abspath(self.runFolder), os.path.abspath(self.resultsFolder))
+			dstfile2 = newfile.replace(os.path.abspath(self.runFolder), os.path.abspath(self.userDataPath)+ '/ResultsFiles/')
 			dstfolder = os.path.split(dstfile)[0]
+			dstfolder2 = os.path.split(dstfile2)[0]
 			if not os.path.exists(dstfolder):
 				os.makedirs(dstfolder)
+			if not os.path.exists(dstfolder2):
+				os.makedirs(dstfolder2)
 			if(newfile != dstfile):
 				shutil.copy(newfile,dstfile)
+			if(newfile != dstfile2):
+				shutil.copy(newfile,dstfile2)
 	
 	def cleanTempFiles(self):
+		'''Remove the status file created during a Node run
+		'''
 		os.remove('status' + str(self.taskID) + '.txt')
 	
 	def getNewFilesPath(self):
@@ -177,20 +152,37 @@ class remoteFolders(object):
 		return added
 	
 	def getNewFilesPathSize(self):
+		'''Gets sizes and paths of the new files created during the Node run and includes them inside a dict
+		'''
 		added = self.getNewFilesPath()
 		sizes =[]
 		outFile = os.path.abspath(os.path.join(self.resultsFolder, './out.txt'))
-		stdoutFile = os.path.abspath(os.path.join(self.resultsFolder, './Script stdout.txt'))
+		stdoutFile = os.path.abspath(os.path.join(self.resultsFolder, './stdout.txt'))
 		added.append(outFile)
 		added.append(stdoutFile)
 		for fil in added:
 			sizes.append(os.path.getsize(fil))
-			#print("File: " + str(fil) + ", with size: " + str(os.path.getsize(fil)))
 		return {"names": added, "sizes": sizes}
 
-			
+
+	def addUserLibsAsPackage(self):
+		'''Locates libraries in the user path inside the code folder, read all the files inside this path and creates __init__.py files to
+		create a loadable package. Finally, the path is added, during run time, to the python path, allowing users to
+		 load and call their own functions   
+		'''
+		self.userLibPath = os.path.abspath(self.paths['code']) + '/userLibraries/{0}/'.format(self.user)
+		for folder,_,files in os.walk(self.userLibPath):
+			__all__ = [ str(os.path.basename(f)[:-3]) for f in files if '.py' in f]
+			if(__all__):
+				newfile = open(folder + '/' + '__init__.py','w')
+				line = '__all__ = {0}'.format(__all__)
+				newfile.write(line)
+		import sys
+		sys.path.insert(0,self.userLibPath)
+
+
 	def removeNewFiles(self):
-		''' Compares the status before and after the execution to check if new files are created, all the new files are copied to the results folder.
+		''' Compares the status before and after the execution to check if new files are created, all the new files are deleted from the results folder.
 		'''
 		added = self.getNewFilesPath()
 		for newfile in added:
@@ -198,15 +190,6 @@ class remoteFolders(object):
 			os.remove(newfile)
 		os.remove(self.zippedFile)
 		os.remove('status'+str(self.taskID)+'.txt')
-	
-	def _zipNewFiles(self,where):
-		added = self.getNewFilesPath()
-		filepath = where+"/out.zip"
-		zf = zipfile.ZipFile(filepath, "w")
-		for newfile in added:
-			zf.write(newfile,os.path.basename(newfile))
-		self.zippedFile = filepath
-		return filepath
 	
 	def _zipOutputs(self,where=None, keepFolderTree = False):
 		''' Create a zip with all the files and folders inside the results folder
@@ -227,12 +210,6 @@ class remoteFolders(object):
 						zf.write(os.path.join(root, file),os.path.basename(file))
 		self.zippedFile = filepath
 		return filepath
-	
-	def serializeFile(self,filepath):
-		with open(filepath, 'rb') as f:
-			data = base64.b64encode(f.read())
-		datastring = data.decode('utf-8')
-		return datastring
 					
 	def saveIO(self, variables, outStream):
 		''' Saves all the new data, outputs and variables after the execution of the script/task
@@ -245,7 +222,9 @@ class remoteFolders(object):
 		'''
 		self.moveNewFiles()
 		self.saveData(str(variables), 'out', self.resultsFolder)
-		self.saveData(outStream, 'Script stdout', self.resultsFolder)
+		self.saveData(outStream, 'stdout', self.resultsFolder)
+		self.saveData(outStream, 'stdout', self.userDataPath+'/node_logs')
+		self.saveData(outStream, 'stdout', self.userDataPath+'/ResultsFiles')
 
 	def saveData(self, data, name, path2save):
 		''' Saves in files the information in data as <path2save>/name.txt
@@ -258,11 +237,19 @@ class remoteFolders(object):
 			Path where the file must be stored, can be relative or absolute
 		'''
 		#self.log('Saving Info...')
+		# testing = True
+		# if(testing):
+		# 	import sys
+		# 	print("----------WARNING----------- Testing is activated", file=sys.stderr)
+		# 	path2save= path2save.replace('/code','.')
+		# 	fileName = os.path.abspath(path2save) + "/" + name + ".txt"
+		# else:
 		fileName = path2save + "/" + name + ".txt"
-		try:
-				file = open(fileName, 'x')
-		except:
-				file = open(fileName, 'w')
+		# print('Saving using fileName: {0}'.format(fileName))
+		if(not os.path.exists(path2save + "/")):
+			# print('Saving using path2save: {0}'.format(path2save))
+			os.makedirs(path2save + "/")
+		file = open(fileName, 'w')
 		if(not isinstance(data, str)):
 			dataread  = data.getvalue()
 			file.write(dataread)

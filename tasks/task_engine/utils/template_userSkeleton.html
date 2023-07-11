@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Node Info Example</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-2021.css">
+	<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-2020.css">
+
+</head>
+<body id="body_glob" class="w3-2021-inkwell">
+	<header id="header_glob" class="w3-container w3-2021-inkwell">
+	</header>
+	<section id="tabs_glob" class="w3-container ">
+		<div id="main data" class="w3-container city w3-animate-opacity w3-2020-faded-denim">
+			<div class="w3-padding w3-2020-faded-denim w3-display-container">
+				<div class="w3-panel" style="position:relative">
+					
+					<div id="figsfiles_glob" class="w3-content w3-half" style="position:relative">
+						<h2 class="w3-center">Figures and generated files</h2>
+						///**FIGS AND FILES**///
+						<!-- <span class="mySlides w3-center">
+							<img class="w3-animate-opacity" src="https://www.w3schools.com//w3images/snow.jpg" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);width:100%">
+							<p>Mountain Image</p>
+						</span> -->
+						<a class="w3-button w3-hover-dark-grey" style="position:absolute;top:50%;left:0;" onclick="plusDivs(-1)">&#60;</a>
+						<a class="w3-button w3-hover-dark-grey" style="position:absolute;top:50%;right:0;" onclick="plusDivs(+1)">&#62;</a>
+					</div>
+					<div class="w3-content w3-half">
+						<h2 class="w3-center">Run Information</h2>
+						<div class="w3-row-padding">
+							<div class="w3-col s6 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-signature w3-text-white w3-large"></i> 
+										Node Name </h4>
+									<p id="node_name"> concat </p> 
+								</div>
+							</div>
+							<div class="w3-col s6 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-fingerprint w3-text-white w3-large"></i> 
+										Node ID</h4>
+									<p id="node_id">123456</p> 
+								</div>
+							</div>
+							<!-- <div class="w3-col s4 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-arrow-down-9-1 w3-text-white w3-large"></i> 
+										Node Order</h4>
+									<p id="node_order">1</p> 
+								</div>
+							</div>  -->
+						</div> 
+						<div class="w3-row-padding">
+							<div class="w3-col s6 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-hourglass-start w3-text-white w3-large"></i> 
+										Started</h4>
+									<p id="node_start">11:00:00 2023-06-21</p> 
+								</div>
+							</div>
+							<div class="w3-col s6 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-hourglass-end w3-text-white w3-large"></i> 
+										Stoped</h4>
+									<p id="node_stop">14:00:00 2023-06-21</p> 
+								</div>
+							</div>
+						</div>
+						<div class="w3-row-padding">
+							<div class="w3-col s12 w3-text-black" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">
+								<div class="w3-container w3-center">
+									<h4><i class="fa fa-info-circle w3-text-white w3-large"></i> 
+										Status</h4>
+									<p id="node_status">Completed</p> 
+								</div>
+							</div>
+						</div>
+					</div>
+				
+				</div>
+			
+				<div class="w3-panel w3-card w3-light-grey" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);"> 
+					<h4>Code running in Node</h4>
+					<div id="node_code" class="w3-code jsHigh notranslate" style="white-space: pre;">
+					</div>
+				</div>
+		
+			</div>
+		</div>
+	</section>
+
+</body>
+
+<section class="w3-container w3-2021-inkwell">
+	<h3>Footer</h3>
+	<p class="w3-opacity">Footer information goes here</p>
+</section>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://kit.fontawesome.com/8ececd87fa.js" crossorigin="anonymous"></script>
+<script src="https://www.w3schools.com/lib/w3codecolor.js"></script>
+<script>
+	
+	///**NODE INFO**///
+
+	///**NODE RUN INFO**///
+
+	///**NODE OUTPUT DATA**///
+
+	node_info = all_info['nodeInfo']
+	run_info = all_info['info']
+
+	addVariables(bdnode_info,node_info,outputData)
+	addRunInfo(all_info, bdnode_info['code'])
+	// placeFigsFiles()
+
+
+	function addVariables(bdnode_info,node_info,outputData) {
+		header_dom = document.getElementById("header_glob")
+		tabs_dom = document.getElementById("tabs_glob")
+		vars_info = bdnode_info['properties']
+		var header_HTML = ''
+		var tabs_HTML = ''
+
+		header_HTML += '<h3>'
+		header_HTML += '<i class="fa fa-signature w3-text-white w3-large"></i> Node_Name: '
+		header_HTML += '<i> ' + node_info['name'] + ' </i>'
+		header_HTML += '<i> ----- </i>'
+		header_HTML += '<i class="fa fa-fingerprint w3-text-white w3-large"></i> ID:'
+		header_HTML += '<i> ' + node_info['type'] + ' </i>'
+
+		header_HTML += '</h3>'
+		header_HTML += '<section class="w3-bar w3-2020-brilliant-white">  \n \
+		<button class="w3-bar-item w3-button testbtn w3-padding-16 w3-text-2021-inkwell" onclick="openImage(event,\'main data\')"><b>Main Data</b></button> \n'
+		for(var prop in vars_info){
+			varname = vars_info[prop]['local_name']
+			dataname = vars_info[prop]['name']
+			// console.log(varname)
+			header_HTML += '<button class="w3-bar-item w3-button testbtn w3-padding-16 w3-text-2021-inkwell" onclick="openImage(event,\'' + varname + '\')"><b>' + varname + '</b></button> \n'
+			tabs_HTML += '<div id="' + varname + '" class="w3-container city w3-animate-opacity w3-2020-faded-denim">'
+			tabs_HTML += createTab(varname,dataname,bdnode_info)
+			tabs_HTML += '</div>'
+			tabs_HTML += createShowDataModal(dataname)
+		}
+		header_HTML += '</section>\n'
+		header_dom.innerHTML += header_HTML
+		tabs_dom.innerHTML += tabs_HTML
+		for(var prop in vars_info){
+			varname = vars_info[prop]['local_name']
+			dataname = vars_info[prop]['name']
+			// if(vars_info[prop]['attributes'].includes('output')){
+			plotData(varname, dataname, outputData)
+			// }else{
+				// nodeInput = {dataname : getProperty(node_info['properties'], dataname, 'name')}
+			// plotData(varname, dataname, nodeInput)
+			// }
+		}
+	}
+	
+	function addRunInfo(all_info,code) {
+		node_name = all_info['name']
+		node_id = all_info['nodeInfo']['id']
+		node_start = all_info['info']["startTime"]
+		node_stop = all_info['info']["stopTime"]
+		
+		if(all_info['data']["error"] == ''){
+			node_status = 'No Error'
+		}else{
+			node_status = 'Error: ' + all_info['data']["error"]
+		}
+
+		document.getElementById("node_code").innerHTML = code
+		document.getElementById("node_name").innerHTML = node_name
+		document.getElementById("node_id").innerHTML = node_id
+		document.getElementById("node_start").innerHTML = node_start
+		document.getElementById("node_stop").innerHTML = node_stop
+		document.getElementById("node_status").innerHTML = node_status
+	}
+
+	function createTab(varname, dataname, node_info){
+		properties = getProperty(node_info["properties"],varname)
+		// console.log(properties)
+		keys2Show = ["local_name","name","type","default","attributes", "value"]
+		icons2show = ["fa-signature", 	"fa-info", "fa-folder-tree", "fa-gears", "fa-arrow-right-from-bracket", "fa-glasses"]
+		tab_html = ''
+		tab_html += '<div class="w3-padding w3-2020-faded-denim w3-display-container"> \n \
+				<div class="w3-row-padding" style="margin:0 0px"> \n \
+					<div class="w3-col w3-half" style="margin:0 0px ">\n \
+						<table class="w3-table w3-striped w3-white" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);">\n'
+		for(var key in keys2Show){
+			tab_html += '<tr> \n \
+							<td><i class="fa ' + icons2show[key] + ' w3-text-blue"></i></td> \n \
+							<td>' + keys2Show[key] + '</td>'
+			if(keys2Show[key] == "value"){
+				tab_html += '<td onclick="loadFullData(\'' + dataname + '\')" class="w3-button"> \n \
+							Show all data  \n \
+						</td> \n \
+						</tr>'
+			}else{
+				tab_html += '<td><i>' + properties[keys2Show[key]] + '</i></td> \n \
+						</tr>'
+			}
+		}
+
+		tab_html += '</table>'
+		tab_html += '</div> \n \
+					<div class="w3-col w3-half" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);"> \n \
+						<div id="plot_' + varname + '"> \n \
+						</div> \n \
+						<p>Data Plot</p> \n \
+					</div> \n \
+					</div>'
+
+		tab_html += '<div class="w3-row-padding w3-white w3-border" style="margin:10px 10px; box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);" > \n \
+						<div id="myData_preview_' + dataname + '" class="w3-code jsHigh notranslate" style="font-style: italic;"> \n \
+						</div> \n \
+					</div> \n \
+					<p style="margin:10px 10px; ">Data Preview</p> \n \
+				</div>'
+
+		return tab_html
+	}
+
+	function loadFullData(dataname){
+		document.getElementById('dataView_' + dataname).style.display='block'
+		df = outputData[dataname]
+		dataFull_dom = document.getElementById('myData_full_'+dataname)
+		dataFull_dom.innerHTML = JSON.stringify(df);
+	}
+
+	function createShowDataModal(dataname){
+		modal_html = ''
+		modal_html += '<div id="dataView_'+ dataname +'" class="w3-modal">  \n \
+			<div class="w3-modal-content w3-card-4">  \n \
+					<header class="w3-container w3-2021-inkwell">   \n \
+					<span onclick="document.getElementById(\'dataView_' + dataname + '\').style.display=\'none\'"   \n \
+					class="w3-button w3-display-topright">&times;</span>  \n \
+					<p></p>  \n \
+				</header>  \n \
+				<div id="myData_full_'+ dataname +'" class="w3-code jsHigh notranslate w3-text-blue" style="overflow: auto; font-style: italic;">  \n \
+				</div>  \n \
+				<footer class="w3-container w3-2021-inkwell">  \n \
+				<p></p>  \n \
+				</footer>  \n \
+			</div>  \n \
+		</div>'
+		return modal_html
+	}
+
+	function getProperty(properties, name, withKey = 'local_name'){
+		for(var prop in properties){
+			if(properties[prop][withKey] == name){
+				return properties[prop]
+			}
+
+		}
+	}
+	w3CodeColor();
+
+	// Slideshows
+	var slideIndex = 1;
+
+	function plusDivs(n) {
+		slideIndex = slideIndex + n;
+		showDivs(slideIndex);
+	}
+
+	function showDivs(n) {
+		var x = document.getElementsByClassName("mySlides");
+		if (n > x.length) {slideIndex = 1}    
+		if (n < 1) {slideIndex = x.length} ;
+		for (i = 0; i < x.length; i++) {
+				x[i].style.display = "none";  
+		}
+		x[slideIndex-1].style.display = "block";  
+	}
+	showDivs(1);
+
+	// Tabs
+	function openImage(evt, cityName) {
+		var i;
+		var x = document.getElementsByClassName("city");
+		for (i = 0; i < x.length; i++) {
+			x[i].style.display = "none";
+		}
+		var activebtn = document.getElementsByClassName("testbtn");
+		for (i = 0; i < x.length; i++) {
+			activebtn[i].className = activebtn[i].className.replace(" w3-2020-faded-denim", "");
+		}
+		document.getElementById(cityName).style.display = "block";
+		evt.currentTarget.className += " w3-2020-faded-denim";
+	}
+
+	var mybtn = document.getElementsByClassName("testbtn")[0];
+	mybtn.click();
+
+	//Plots
+	function plotData(varname,dataname,outdata){
+		// df_json_file = {"data": {"time": {"0": 25.016199, "1": 25.031401, "2": 25.0466, "3": 25.0618, "4": 25.077, "5": 25.092199, "6": 25.107401, "7": 25.122601, "8": 25.1378, "9": 25.153, "10": 25.1682, "11": 25.183399, "12": 25.198601, "13": 25.2138, "14": 25.229, "15": 25.2442, "16": 25.259399, "17": 25.274599, "18": 25.289801, "19": 25.305, "20": 25.3202, "21": 25.3354, "22": 25.350599, "23": 25.365801, "24": 25.381001, "25": 25.3962, "26": 25.4114, "27": 25.4266, "28": 25.441799, "29": 25.457001, "30": 25.4722, "31": 25.4874, "32": 25.5026, "33": 25.517799, "34": 25.533001, "35": 25.548201, "36": 25.5634, "37": 25.5786, "38": 25.5938, "39": 25.608999, "40": 25.624201, "41": 25.6394, "42": 25.6546, "43": 25.6698, "44": 25.684999, "45": 25.700199, "46": 25.715401, "47": 25.7306, "48": 25.7458, "49": 25.761, "50": 25.776199}, "signal": {"0": 0.0, "1": 0.0, "2": 0.0, "3": 0.0, "4": 610.400024, "5": 0.0, "6": 0.0, "7": 610.400024, "8": 0.0, "9": 0.0, "10": -610.400024, "11": 610.400024, "12": 0.0, "13": 610.400024, "14": 0.0, "15": 0.0, "16": 0.0, "17": -1220.800049, "18": 1220.800049, "19": 0.0, "20": 1220.800049, "21": -1220.800049, "22": 610.400024, "23": 0.0, "24": 0.0, "25": 0.0, "26": 0.0, "27": -610.400024, "28": 0.0, "29": 0.0, "30": -610.400024, "31": 0.0, "32": 0.0, "33": 0.0, "34": -610.400024, "35": 610.400024, "36": 0.0, "37": 0.0, "38": 1220.800049, "39": 0.0, "40": 1220.800049, "41": 0.0, "42": 0.0, "43": 1220.800049, "44": 0.0, "45": 0.0, "46": 0.0, "47": 0.0, "48": 0.0, "49": 0.0}}}
+		// df_json = '{"foo": [1,2,3,4,5,6,7,8,9,10], "bar": [1,3,6,9], "fob": [1,5,19,33], "baf": [1,8,12,13,12,8,1]}'
+		// dfx = {'foo': [1,2,3,4,5,6,7,8,9,10], 'bar': [0,2,4,6], 'fob': [-1,0,1,2], 'baf': [-5,-4.5,-4,-3.5,-3,-2.5,-2]}
+		// df_json = '{"t":{"0":1,"1":3,"2":5,"3":7},"x":{"0":2,"1":4,"2":6,"3":8}}'
+		
+		df = outdata[dataname]
+
+		// dataFull_dom = document.getElementById('myData_full_'+dataname)
+		// dataFull_dom.innerHTML += JSON.stringify(df);
+		// df = JSON.parse(df_json);
+
+		if(! (typeof(df)=='string')){
+			try {
+				df_keys = Object.keys(df)
+				dfx_keys = Object.keys(df)
+
+				buttons = []
+			
+				for(var key in df_keys){
+					dataPreview_dom = document.getElementById('myData_preview_'+dataname).innerHTML += df_keys[key] + ': ' + JSON.stringify(df[df_keys[key]]).slice(0,100) + ' ... <br>';
+					visibilityArray = new Array(df_keys.length).fill(false);
+					visibilityArray[key] = true
+					buttons.push({
+							method: 'restyle',
+							args: ['visible', visibilityArray],
+							label: 'Data set ' + df_keys[key]
+						})
+				}
+
+				updatemenus = [{
+						y: 1,
+						yanchor: 'top',
+						buttons:buttons
+					}]
+
+				var config = {responsive: true}
+				Plotly.plot("plot_"+ varname, df_keys.map(makeTrace), {
+					updatemenus: updatemenus,
+				}, config);
+			}catch (error) {
+				console.error(dataname + ' does not contain plottable data or is too complex to show in the graph');
+			}
+		}else{
+			if(df.length>100)
+				dataPreview_dom = document.getElementById('myData_preview_'+dataname).innerHTML += df.slice(0,100) + ' ... <br>';
+			else
+				dataPreview_dom = document.getElementById('myData_preview_'+dataname).innerHTML += df;
+		}
+	}
+
+	function makeTrace(i) {
+		return {
+			//x: df[i],
+			y: df[i],
+			mode:"markers",
+			visible: i === 0,
+			name: 'Data set ' + i,
+		};
+	}
+
+	function placeFigsFiles(){
+		
+		figsfiles_dom = document.getElementById('figsfiles_glob')
+		html_figsfiles = ''
+		console.log('figfiles_info' + figfiles_info)
+		for(var ffile in figfiles_info){
+			html_figsfiles += '<img class="w3-animate-opacity" src="' + figfiles_info[ffile] + '" style="box-shadow: 3px 3px 3px rgba(0, 65, 87, 0.5);width:100%">'
+			html_figsfiles += '<p>' + figfiles_info[ffile].replace(/^.*[\\\/]/, '') + '</p>'
+		}
+		figsfiles_dom.innerHTML = html_figsfiles
+		showDivs(1)
+	}
+
+	
+
+
+</script>

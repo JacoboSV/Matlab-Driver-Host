@@ -5,25 +5,22 @@ class ImageFormatter(object):
     def __init__(self):
         pass
     
-    def prepareImgs(self, filePaths, reduced, returnb64, type):
+    def prepareImgs(self, filePath, reduced, returnb64, type):
         if(reduced):
-            filePaths = [self.reduceSize(img, type=type) for img in filePaths]
+            filePaths = self.reduceSize(filePath, type=type)
         if(returnb64):
             imgsArr = self.files2b64(filePaths)
             return imgsArr
         else:
-            return filePaths 
+            return filePath 
         
     def file2b64string(self,filePath):
         with open(filePath, "rb") as img:
             b64_string = b64.b64encode(img.read())
         return b64_string.decode('utf-8')
     
-    def files2b64(self,filePaths):
-        b64array = []
-        for file in filePaths:
-            b64array.append(self.file2b64string(file))
-        return b64array
+    def files2b64(self,file):
+        return self.file2b64string(file)
     
     def reduceSize(self, imgPath, type="web"):
         expectedSizes = {

@@ -119,7 +119,7 @@ class sessionLauncher(object):
 		params : string
 			Complete name or prefix to identify an input file
 		'''
-		params = self.folderHandler.locateParamsFile(params)
+		#params = self.folderHandler.locateParamsFile(params)
 		if(self.isML):
 			meth = task
 			lib = task

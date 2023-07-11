@@ -5,43 +5,37 @@ import re
 import base64 as b64
 from PIL import Image
 from .imageFormatter import ImageFormatter
+import os
 
 
 class OutputHTMLCreator(object):
 	def __init__(self):
 		jsonData = {}
 		error = False
-		self.templatePath = "templateHTML.html"
+		self.templatePath = "tasks/task_engine/utils/templateHTML.html"
 		self.convertImages2b64 = True
 		self.reduceImages = True
-		self.imageType = "web"
+		self.imageType = "logo"
 		self.jsonkey_forfiles = "generatedFiles"
 		self.fileCount = 0
-		
-	#===========================================================================
-	# def config(self,rawData, path_outHTML = 'filledTemplate.html', nodeNumber = 0, fromDB = False, fromFile = False):
-	# 	if(fromDB):
-	# 		#TO - DO
-	# 		pass
-	# 	elif(fromFile):
-	# 		try:
-	# 			jsonData = json.load(open(rawData,'r'))
-	# 		except: 
-	# 			print("The data from the file can't be processed as JSON or the file does not exist, please check the output file to find more information.")
-	# 			error = True
-	# 	else:
-	# 		if(isinstance(rawData,dict)):
-	# 			jsonData = rawData
-	# 		else:
-	# 			try: 
-	# 				jsonData = json.load(rawData)
-	# 			except:
-	# 				print("The data can't be processed as JSON, please check the output data to find more information.")
-	# 				error = True
-	# 	return jsonData
-	#===========================================================================
-		#self.create(jsonData, path_outHTML, nodeNumber, error)
 				
+	def isImage(self,file):
+		types = ['apng','avif','gif','jpg','jpeg','jfif','pjpeg','pjp','png','svg','webp']
+		fileext = file.split('.').pop()
+		return fileext in types
+
+	def isTextFile(self,file):
+		types = ['txt','json','log','nfo','md','ocr']
+		fileext = file.split('.').pop()
+		return fileext in types
+		
+
+	def getTestFromFile(self,file):
+		text_file = open(file, "r")
+		data = text_file.read()[0:500]
+		text_file.close()
+		return data
+
 	def getNestedLists(self,actualDict,htmlList = '', depth=1, isList= False, hierarchy = []):
 		mainC = 0
 		for k in actualDict:
@@ -50,16 +44,34 @@ class OutputHTMLCreator(object):
 			except:
 				v = k
 				k = mainC
-			if(self.jsonkey_forfiles in k):
+			if(isinstance(k,str) and self.jsonkey_forfiles in k):
 				filespath = v["names"]
 				image_formatter = ImageFormatter()
-				formattedImages = image_formatter.prepareImgs(filespath, self.convertImages2b64, self.reduceImages, self.imageType)
+				formattedFiles = []
+				formattedIcons = []
+				formattedTypes = []
+				names = []
+				for filepath in filespath:
+					names.append(filepath.split('/').pop())
+					if(self.isTextFile(filepath)):
+						formattedFiles.append(self.getTestFromFile(filepath))
+						formattedIcons.append(image_formatter.prepareImgs("tasks/task_engine/utils/fileIcon.png", self.convertImages2b64, self.reduceImages, 'thumbnail'))
+						formattedTypes.append('file')
+					elif(self.isImage(filepath)):
+						formattedFiles.append('../ResultsFiles/{0}'.format(str(os.path.basename(filepath))))
+						formattedIcons.append(image_formatter.prepareImgs(filepath, self.convertImages2b64, self.reduceImages, 'thumbnail'))
+						formattedTypes.append('image')
+					else:
+						print(":::::::::::: Not processed")
+						formattedFiles.append(image_formatter.prepareImgs("tasks/task_engine/utils/fileIcon.png", self.convertImages2b64, self.reduceImages, 'thumbnail'))
+						formattedIcons.append(image_formatter.prepareImgs("tasks/task_engine/utils/fileIcon.png", self.convertImages2b64, self.reduceImages, 'thumbnail'))
+						formattedTypes.append('file')
 				htmlList += '\n' + self.addtabs(depth) + '<ul>\n'
 				htmlList += self.addtabs(depth) + '<details>\n'
 				htmlList += self.addtabs(depth) + '<summary>'
 				htmlList += str(k) + " : "
 				htmlList += '</summary>\n'
-				htmlList += self.addImages(formattedImages, depth)
+				htmlList += self.addImages(formattedFiles,formattedIcons, formattedTypes, names, depth)
 				htmlList += self.addtabs(depth) + '</details>\n'
 				htmlList += self.addtabs(depth) + '</ul>\n'
 				
@@ -74,15 +86,10 @@ class OutputHTMLCreator(object):
 				htmlList += self.addHeading_newElement(v, summaryLabel = str(k) + " [",depth=depth)
 				counter = 0
 				hierarchy.append(k)
-				for dictvals in v:
-					htmlList += self.addtabs(depth) + '<li>'
-					htmlList += self.addHeading_newElement(dictvals,summaryLabel = "List Index : " + str(counter),depth=depth)
-					hierarchy.append(counter)
-					htmlList += self.getNestedLists(dictvals,'',depth, isList = True, hierarchy = hierarchy)
-					hierarchy.pop()
-					htmlList += self.addClosing_newElement(depth)
-					htmlList += self.addtabs(depth) + '</li>\n'
-					counter += 1
+				if(len(v)>400):
+					htmlList += str(v)[0:200] + '\n...\n' + str(v)[len(v)-200:len(v)]
+				else:
+					htmlList += str(v)
 				htmlList += " ]"
 				htmlList += self.addClosing_newElement(depth)
 			elif(isinstance(v, list)):
@@ -132,41 +139,50 @@ class OutputHTMLCreator(object):
 		htmlSummary += self.addtabs(depth) + '</ul>\n'
 		return htmlSummary
 	
-	def addImages(self, imagesArray, depth):
+	def addImages(self, imagesArray, formattedIcons, formattedTypes, names, depth):
 		htmlImages = ''
-		size = len(imagesArray)
-		if(size>=4):
-			rowlen = int(size/4)
-		else:
-			rowlen = 1
+		#size = len(imagesArray)
+		#print("names _-_-_-_-_-_>>>>> ", names)
+		#if(size>=4):
+		#	rowlen = int(size/4)
+		#else:
+		#	rowlen = 1
 		counter = 0
-		#htmlImages += self.addtabs(depth) +'<div class="row">\n'
-		#htmlImages += self.addtabs(depth) +'<div class="column">\n'
 		htmlImages += self.addtabs(depth) +'<section class="gallery">\n'
 		htmlImages += self.addtabs(depth) +'<div class="gallery__item">\n'
 		for b64image in imagesArray:
-			if(counter >= rowlen):
-				htmlImages += self.addtabs(depth) +'</div>\n'
-				#htmlImages += self.addtabs(depth) +'<div class="column">\n'
-				htmlImages += self.addtabs(depth) +'<div class="gallery__item">\n'
-				counter = 0
-			htmlImages += self.addImageColumn(b64image,depth, self.fileCount)
+			#if(counter >= rowlen):
+			htmlImages += self.addtabs(depth) +'</div>\n'
+			htmlImages += self.addtabs(depth) +'<div class="gallery__item">\n'
+			#counter = 0
+			if('image' in formattedTypes[counter]):
+				htmlImages += self.addImageColumn(b64image, formattedIcons[counter], names[counter],depth, self.fileCount)
+			else:
+				htmlImages += self.addFileColumn(b64image, formattedIcons[counter], names[counter],depth, self.fileCount)
 			self.fileCount = self.fileCount + 1
 			counter = counter + 1
-		# htmlImages += self.addtabs(depth) +'</div>\n'
-		# htmlImages += self.addtabs(depth) +'</div>\n'
 		htmlImages += self.addtabs(depth) +'</div>\n'
 		htmlImages += self.addtabs(depth) +'</section>\n'
 		return htmlImages
 
-	def addImageColumn(self,b64content, depth, count):
+	def addFileColumn(self,b64content, b64icon, name, depth, count):
 		htmlImage = ''
 		htmlImage += self.addtabs(depth) + '<input type="radio" id="img-' + str(count) + '" checked name="gallery" class="gallery__selector"/>\n'
-		htmlImage += self.addtabs(depth) + '<img class="gallery__img" src="data:image/jpeg;base64,'+ str(b64content) +'"/>\n'
-		htmlImage += self.addtabs(depth) + '<label for="img-' + str(count) + '" class="gallery__thumb"><img src="data:image/jpeg;base64,'+ str(b64content) +'"/></label>\n'
+		htmlImage += self.addtabs(depth) + '<div class="gallery__img">' + str(b64content) + '</div>'
+		htmlImage += self.addtabs(depth) + '<label for="img-' + str(count) + '" class="gallery__thumb"><img src="data:image/jpeg;base64,'+ str(b64icon) +'"/>'
+		htmlImage += self.addtabs(depth) + '<p>' + name + '</p></label>\n'
 		return htmlImage
-		  
-		
+
+	def addImageColumn(self,b64content, b64icon, name, depth, count):
+		htmlImage = ''
+		htmlImage += self.addtabs(depth) + '<input type="radio" id="img-' + str(count) + '" checked name="gallery" class="gallery__selector"/>\n'
+		if(len(b64content)>64):
+			htmlImage += self.addtabs(depth) + '<img class="gallery__img" src="data:image/jpeg;base64,'+ str(b64content) +'"/>\n'
+		else:
+			htmlImage += self.addtabs(depth) + '<img class="gallery__img" src="'+ str(b64content) +'"/>\n'
+		htmlImage += self.addtabs(depth) + '<label for="img-' + str(count) + '" class="gallery__thumb"><img src="data:image/jpeg;base64,'+ str(b64icon) +'"/>'
+		htmlImage += self.addtabs(depth) + '<p>' + name + '</p></label>\n'
+		return htmlImage
 		
 	def addImage(self):
 		pass
@@ -183,7 +199,8 @@ class OutputHTMLCreator(object):
 		text_file.close()
 		return data
 
-	def create(self,rawData, path_outHTML = 'filledTemplate.html', nodeNumber = 0, fromDB = False, fromFile = False):
+	def create(self,rawData, path_outHTML = 'var/temp/filledTemplate.html', nodeNumber = 0, fromDB = False, fromFile = False):
+		error = False
 		if(fromDB):
 			#TO - DO
 			pass

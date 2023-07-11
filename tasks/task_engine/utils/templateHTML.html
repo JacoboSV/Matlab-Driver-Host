@@ -1,0 +1,177 @@
+<style>
+	body{
+	  max-width: 100%;
+	  min-width: 65%;
+	  background:#22212e;
+	  color:#aaa;
+      display: flex;
+	}
+	.tree{
+		padding-left : 0;
+		--spacing : 1rem;
+		--radius  : 0px;
+	}
+	
+	.listli:before{
+		content: "\26AC";
+		color:cyan;
+	}
+	
+	.tree li{
+		display      : block;
+		position     : relative;
+		padding-left : calc(2 * var(--spacing) - var(--radius));
+	}
+	
+	.tree ol{
+		list-style-type: number;
+	}
+
+	.tree ul{
+		margin-left  : calc(var(--radius) + 1.5*var(--spacing));
+		padding-left : 0;
+	}
+
+	.tree ul li{
+		border-left:0.1em #ccc dotted;
+	}
+	.tree ul li:last-child{
+		border-left:0.1em #ccc dotted;
+	}
+	.tree summary{
+		display : block;
+		color:rgb(79, 131, 126);
+		padding:0.1em 0.5em 0.2em;
+		background:#254742;
+		cursor  : pointer;
+		position: relative;
+		border-bottom: 1px dotted black;
+	}
+	.tree summary:before{
+		content:'\229e';
+		color:#eee;
+		font-size:0.5em;
+		margin-right:0.5em;
+	}
+	
+	.tree summary:after{
+		content:"\1F6C8";
+		color:#eee;
+		font-size:1em;
+		margin-left:0.5em;
+	}
+	
+	.tree [open]>summary{
+		background:rgb(92, 131, 119);
+		color:#eee;
+	}
+	.tree [open]>summary:before{
+		content:'\229f';
+		color:#ccc;
+	}
+	
+	.tree summary:hover{
+		border: 1px dotted black;
+	}
+	
+	.tree summary:hover .tooltiptext {
+		visibility: visible;
+		opacity: 1;
+	}
+	.tree summary:focus{
+		outline : none;
+	}
+	.tree summary:focus-visible{
+		outline : 1px dotted #000;
+	}
+
+	.tooltiptext {
+		visibility: hidden;
+		width: auto;
+		background-color: #fff;
+		color: #323f53;
+		text-align: left;
+		border-radius: 6px;
+		padding: 0% 5%;
+		position: absolute;
+		z-index: 1;
+		bottom: auto;
+		left: 50%;
+		line-height: 0.5;
+		margin-left: -60px;
+		opacity: 0;
+		transition: opacity 0.3s;
+	}
+	* {
+		box-sizing: border-box;
+	}
+
+	img {
+		width: 60%;
+		max-width: 50em;
+		height: 60%;
+		max-height: 15em;
+		vertical-align: top;
+	}
+
+	.gallery {
+		display: flex;
+		position: relative;
+		padding-top: 63%;
+		}
+		@media screen {
+			.gallery {
+				display: flex;
+		}
+	}
+	.gallery__img {
+		max-height: 60%;
+		width: 100%;
+		padding-top: 2%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		opacity: 0;
+		transition: opacity 0.3s ease-in-out;
+		border-style: 1px solid black;
+	}
+	.gallery__thumb {
+		height: auto;
+		width: auto;
+		min-width: 7em;
+		max-width: 9em;
+		display: block;
+	}
+	.gallery__selector {
+		position: absolute;
+		opacity: 0;
+		visibility: hidden;
+	}
+	.gallery__selector:checked + .gallery__img {
+		opacity: 1;
+	}
+	.gallery__selector:checked ~ .gallery__thumb > img {
+		box-shadow: 0 0 0 3px #0be2f6;
+	}
+
+	p {
+	  max-width: 85%;
+      margin: 5px 5px;
+      padding: 0;
+      text-align: justify;
+      font-style: italic;
+    }
+	
+</style>
+
+<ul class="tree">
+<li>
+<details open>
+///**HtmlNodeNumber**///
+///**HtmlData**///
+
+<ul>
+	<div class="row"> 
+///**HtmlImages**///
+	<div class="row"> 
+</ul>

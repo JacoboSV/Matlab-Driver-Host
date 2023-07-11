@@ -16,8 +16,8 @@ class BinaryTaskCaller(TaskCaller):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
-		if(self.dynamic):
-			self.folderHandler.copyTasks(os.path.dirname(name))
+		#if(self.dynamic):
+		self.folderHandler.copyTasks(os.path.dirname(name))
 		pathToScript = os.path.join(self.folderHandler.runFolder, os.path.basename(name))
 		self.folderHandler.savePreStatus()
 		try:

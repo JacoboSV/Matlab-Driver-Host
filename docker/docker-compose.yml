@@ -1,14 +1,26 @@
 version: "3.9"
-   
+
 services:
-  worker:
+  ioda-computing-node:
     build: .
-    command: [celery, --app=tasks.worker_Python.app, worker, --concurrency=20, --loglevel=INFO]
-    image: worker 
+    command: celery -A tasks.worker_Python.app worker -n computing -Q node_runner_input --concurrency=20 --loglevel=INFO
+    image: worker
     environment:
       - BROKER_URL=amqp://guest:guest@rabbitmq
       - RESULT_BACKEND=rpc
       - NODE_NAME=worker_Python
+      - DROPBOX_APP_KEY=iaxqjajx60quz5n
+      - DROPBOX_APP_SECRET=mspufa1tq6gfntr
     restart: 'no'
     volumes:
       - ../:/code
+      - ../../ioda-server/export:/code/share
+    # network_mode: "host"
+
+#  volumes:
+    # nfs-share:
+    #   driver: local
+    #   driver_opts:
+    #     type: "nfs"
+    #     o: "nfsvers=4,addr=127.0.0.1,nolock,soft,rw"
+    #     device: ":/"

@@ -10,7 +10,7 @@ function output = {taskName}({parameters},outputWanted)
 	{Check params}
 	try
 		values = run({parametersInFunction}, outputWanted);
-		output = checkTypes(values)
+		output = values;
 	catch e
 		output = "Err";
 		error = "Exception captured. , User error code: " + e.message ;
@@ -34,15 +34,10 @@ function rawInputs = checkTypes(rawInputs)
 	end
 end
 
-
-
-function valuesFromUserCode = run({parameters},outputWanted)
+function [{outputsCode}] = run({parameters},outputWanted)
 	% Main user code goes here
 	% Do not use "_" when defining variables
 	%______________ Code __________________
 	#{userCode}
 	%________________________________
-	
-	valuesFromUserCode =  #{outputsCode};
-
 end

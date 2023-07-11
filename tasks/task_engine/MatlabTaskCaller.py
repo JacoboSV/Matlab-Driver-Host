@@ -1,9 +1,12 @@
 import os
 import matlab.engine
 import time
-from .matlab.runUserScript import sessionLauncher
-from .TaskCaller import TaskCaller
+import json
+import traceback
 
+from .mltools.runUserScript import sessionLauncher
+from .TaskCaller import TaskCaller
+from .utils.taskCreator_Matlab import TaskCreator
 
 class MatlabTaskCaller(TaskCaller):
 	"""
@@ -19,35 +22,21 @@ class MatlabTaskCaller(TaskCaller):
 	taskID: Integer that identifies the running task
 
 	"""
-	def __init__(self,taskID, folderHandler, formatter, dynamic =False, sessionID = None, verbose = True):
-		super().__init__(taskID, folderHandler, formatter, dynamic, verbose)
-		if(sessionID is not None):
-				self.log('Session defined')
-				self.sessionID = sessionID
-				self.joinMLSession()
-		else:
-				self.log('Searching for sessions')
-				availableSessions = self.searchSharedSession()
-				if(len(availableSessions)>0):
-						self.log('There are sessions')
-						self.sessionID = availableSessions[0]
-						self.joinMLSession()
-				else:
-						sessionLauncher.createMLSession()
-						while(self.searchSharedSession() is None):
-							time.sleep(10)
-							self.sessionID = self.searchSharedSession()[0]
-						self.joinMLSession()
+	def __init__(self,taskID, nodeInfo, bdnodeInfo, sessionID = None, verbose = True):
+		self.language = 'matlab'
+		super().__init__(taskID, nodeInfo, bdnodeInfo)
+		self.sessionManager(sessionID)
 		
-	def joinMLSession(self):
+	def joinMLSession(self, session = None):
 		''' Connects to the a Matlab session,
 		'''
 		try:
-				self.engine = matlab.engine.connect_matlab()
+			self.log('Trying to connect to: {0}'.format(session))
+			self.engine = matlab.engine.connect_matlab(session)
 		except Exception as e:
-				self.log('Not available yet : ' + str(e))
-				time.sleep(10)
-				self.joinMLSession()
+			self.log('Not available yet : ' + str(e))
+			time.sleep(1)
+			self.joinMLSession()
 	
 	@staticmethod
 	def searchSharedSession():
@@ -58,46 +47,63 @@ class MatlabTaskCaller(TaskCaller):
 		except:
 			return None	
 
-	def checkStatus(self, data=None):
+	def checkStatus(self, data=None, isError = False):
 		''' Reads the status of the current work using the Matlab engine, this method only finishes when the task is completed or canceled (due to error or if the file kill.txt exists)
 		'''
-		checkCounter = 10
-		while (not self.asyncTask.done()):
-			checkCounter = checkCounter + 1
-			if(checkCounter>10):
-				self.log('Checking and saving status...')
-				checkCounter = 0
-			self.updateStatus('running')
-			if(os.path.exists((self.folderHandler.runFolder+'/kill.txt'))):
-				self.log('Sending cancel signal to task...')
-				self.killTask()
-				self.updateStatus('canceled')
-				return
-			if(self.dynamic):
+		if(not isError):
+			checkCounter = 10
+			while (not self.asyncTask.done()):
+				checkCounter = checkCounter + 1
+				if(checkCounter>10):
+					self.log('Checking and saving status...')
+					checkCounter = 0
+				self.updateStatus('running')
+				if(os.path.exists((self.getRunFolder()+'/kill.txt'))):
+					self.log('Sending cancel signal to task...')
+					self.killTask()
+					self.updateStatus('Canceled')
+					return
 				time.sleep(0.1)
-			else:
-				time.sleep(10)
-		self.log('Task finished')
-		variables = self.asyncTask.result()
-		self.log('Output Variables : ' + str(variables))
-		self.engine.close('all')
-		self.log('Completed')
-		self.updateStatus('completed')
-		self.log('Saving outputs')
-		if(self.dynamic):
-			self.folderHandler.savePostStatus()
-			self.folderHandler.saveIO(variables,self.outIO)
-			outputs = self.formatOutputs(variables)
-			#print("expectedOuts",self.expectedOuts)
-			#for counter, key in enumerate(self.expectedOuts):
-			#	outputsNames[key] = self.asyncTask.get('output')[counter]
-			#self.saveOutputsLocally(outputsNames)
-			return outputs
+				self.updateStatus('Completed')
+				variables = self.asyncTask.result()
+				
 		else:
-			self.folderHandler.savePostStatus()
-			self.folderHandler.saveIO(variables,self.outIO)
-			self.folderHandler._zipOutputs(keepFolderTree = True)
-			return None
+			self.updateStatus('Completed with errors')
+			variables = data
+		
+		# print("variables :", variables)
+		if(not isinstance(variables, dict)):
+			variables = json.loads(variables)
+			self.log(str(variables))
+		outputsNames = {}
+		self.log("Expected Outputs to recover from Node: {0}".format(self.expectedOuts))
+		for counter, key in enumerate(self.expectedOuts):
+			try:
+				outslength = len(variables.get('output'))
+			except:
+				outslength = -1
+			if(outslength == len(self.expectedOuts)):
+				outputsNames[key] = variables.get('output')[counter]
+			else:
+				outputsNames[key] = variables.get('output')
+		# print("outputsNames: ", outputsNames)
+		
+		variables['output'] = outputsNames
+		self.saveOutputsLocally(variables)
+
+		self.engine.close('all')
+		self.log('Saving outputs')
+		# if(self.dynamic):
+		self.savePostStatus()
+		self.saveIO(variables)
+		outputs = self.formatOutputs(variables)
+		# self.engine.quit()
+		return outputs
+		# else:
+		# 	self.folderHandler.savePostStatus()
+		# 	self.folderHandler.saveIO(variables,self.outIO)
+		# 	self.folderHandler._zipOutputs(keepFolderTree = True)
+		# 	return None
 
 	def killTask(self):
 		''' Kills a running task
@@ -114,7 +120,27 @@ class MatlabTaskCaller(TaskCaller):
 				self.log(str(e))
 		self.log('User cancelled the task')
 				
-	def runTask(self,name,args,expectedOuts = None):
+
+	def sessionManager(self,sessionID):
+		if(sessionID is not None):
+				self.log('Session selected by user')
+				self.sessionID = sessionID
+				self.joinMLSession()
+		else:
+				self.log('Searching for sessions')
+				availableSessions = self.searchSharedSession()
+				if(len(availableSessions) > 0):
+						self.sessionID = availableSessions[0]
+						self.joinMLSession(self.sessionID)
+				else:
+						self.log('No sessions')
+						sessionLauncher.createMLSession()
+						while(self.searchSharedSession() is None):
+							time.sleep(1)
+							self.sessionID = self.searchSharedSession()[0]
+						self.joinMLSession() 
+
+	def runTask(self,args):
 		''' Runs a task by its name and using the sent parameters
 		Attributes
 		----------
@@ -123,38 +149,57 @@ class MatlabTaskCaller(TaskCaller):
 		args : string or Object
 			Path of the file to be used as input or the content of the file
 		'''
-		self.taskName = name
-		self.expectedOuts = expectedOuts
-		# TO DO: poner esto como opcional en función del quien sea el usuario anterior y demas. Si es una tarea diferente no la mando me espero, si es la misma del mismo usuario. 
-		# Podría lanzarse un engine por usuario? Pensarlo.
-		# Una solucion: Las tareas seran unicas (de unica ejecucion) o de ejecucion mantenida (QUe pueden usar el mismo workspace). Si es de tipo único se borra antes y despues.
+		self.updateStatus('Started')
+		# self.expectedOuts = expectedOuts
+		# TO DO: poner esto como opcional en funciï¿½n del quien sea el usuario anterior y demas. Si es una tarea diferente no la mando me espero, si es la misma del mismo usuario. 
+		# Podrï¿½a lanzarse un engine por usuario? Pensarlo.
+		# Una solucion: Las tareas seran unicas (de unica ejecucion) o de ejecucion mantenida (QUe pueden usar el mismo workspace). Si es de tipo ï¿½nico se borra antes y despues.
 		# Si es ejecuion mantenida no borra nada
 		# Segundo control, mirar si las tareas son del mismo usuario o de otro: Mirar como informar al servidor del usurio 
 		#self.engine.clear(nargout=0)
-		if(self.dynamic):
+		
+		self.updateStatus('Preparing Data')
+		self.savePreStatus()
 
-			self.folderHandler.copyTasks(name)
-		self.folderHandler.savePreStatus()
-		userpath = os.path.abspath(str(self.folderHandler.runFolder))
-		self.log('Using user path: ' + str(str(self.folderHandler.runFolder)))
-		addpath = 'userpath("' + userpath  + '")'
-		self.engine.eval(addpath,background = True,nargout=0)
-		self.engine.eval('cd ' + userpath,background = True,nargout=0)
-		self.log('Task : ' + str(name) + ' and params : ' + str(args))
-		if('exit' in name):
+		userpath = os.path.abspath(self.getRunFolder())
+		addpath_command = 'userpath("' + userpath  + '")'
+		userLibspath_command = 'addpath ' + os.path.abspath(self.getUserLibPath())
+		userFilespath_command = 'global user__Data__Path; user__Data__Path = "' + os.path.abspath(self.userDataPath) + '";'
+		# self.log('userLibspath_command: {0}'.format(userLibspath_command))
+		# self.log('userFilespath_command: {0}'.format(userFilespath_command))
+		# self.log('Using user path: {0}'.format(userpath))
+		self.engine.eval(addpath_command, background = True, nargout=0)
+		self.engine.eval('cd ' + userpath, background = True, nargout=0)
+		self.engine.eval(userLibspath_command, background = True, nargout=0)
+		self.engine.eval(userFilespath_command, background = True, nargout=0)
+		
+		for arg in args:
+			if(isinstance(args[arg],str)):
+				try:
+					self.engine.workspace[arg] = eval(args[arg])
+				except:
+					self.engine.workspace[arg] = args[arg]
+			else:
+				self.engine.workspace[arg] = args[arg]
+			# self.engine.eval('disp(' + arg + ')', nargout = 0)
+		
+		self.log('Task : {0} and params {1}'.format(self.taskName, args))
+		if('exit' in self.taskName):
 			self.closeMLSession()
 		else:
-			numberouts = int(self.engine.nargout(name))
-			self.log('outs expected: ' + str(numberouts))
-			args = self.addQuotesToStrings(args)
+			numberouts = int(self.engine.nargout(self.taskName))
+			self.log('Outs expected: {0}'.format(numberouts))
+			# args = self.addQuotesToStrings(args)
 			try:
-				print("args: ", args)
-				command = name + '(' + ','.join(str(x) for x in args) + ')'
+				self.log("Args: {0}".format(args))
+				command = self.taskName + '(' + ','.join(str(x) for x in args) + ')'
 				self.log('Command to use: '+ command)
+				
 				self.asyncTask = self.engine.eval(command, nargout=numberouts,background = True)
+				return self.checkStatus()
 			except Exception as e:
-				print('Error : ' + str(e))
-				variables = 'Error'
+				errormsg = 'Error: ' + traceback.format_exc()
+				return self.checkStatus(self.errorAnswer(self.expectedOuts, errormsg))
 
 	def checkVarInWorkspace(self,variableName):
 		checkvars = 'exist("' + variableName + '")'
@@ -170,20 +215,24 @@ class MatlabTaskCaller(TaskCaller):
 	def addQuotesToStrings(self,args):
 		self.log("args: " + str(args))		
 		quoted = []
-		varNames = [str(args[x]) for x in args] 
-		self.log("varNames: " + str(varNames))
-		for varname in varNames:
+		# varNames = [str(args[x]) for x in args] 
+		# self.log("varNames: " + str(varNames))
+		for varname in args:
 			if(isinstance(varname,str)):
 				isdefined = self.checkVarInWorkspace(varname)
 				if(isdefined):
 					quoted.append(varname)
 				else:
-					if("'" in args):
-						quoted.append('"' + varname + '"')
+					if("'" in args[varname]):
+						quoted.append('"' + str(args[varname]) + '"')
+					elif("\"" in args[varname]):
+						quoted.append("'" + str(args[varname]) + "'")
+					elif(isinstance(args[varname],str)):
+						quoted.append("'" + str(args[varname]) + "'")
 					else:
-						quoted.append("'" + varname + "'")
+						quoted.append(args[varname])
 			else:
-				quoted.append(varname)
+				quoted.append(args[varname])
 		return quoted
 
 
@@ -194,10 +243,9 @@ class MatlabTaskCaller(TaskCaller):
 		name : list
 			List of names of the variables generated while running the task, it must contain the exact names used in the task
 		'''
-		filename = 'LocalOutputs'
-		command = 'save({0},{1})'.format(filename,','.join(outputsNames))
-		command = 'save(' + filename + ',' +','.join(outputsNames)+')'
-		self.engine.eval(command)
+		filename = self.getRunFolder() + '/LocalOutputs.json'
+		with open(filename, 'w') as f:
+			json.dump(outputsNames,f)
 
 	def closeMLSession(self):
 		''' Closes a Matlab session using the self.engine or connecting to one
@@ -208,3 +256,14 @@ class MatlabTaskCaller(TaskCaller):
 				self.engine.eval('exit',nargout=0)
 		except:
 				print('Session Finished')
+
+	def createTask(self, properties, code):
+		'''Creates a file to run the node code from a template. 
+		----------
+		properties : List
+			COntain the names of the outputs that the graph expect
+		code : string
+			Information about the error
+		'''
+		taskCreator = TaskCreator()
+		taskCreator.createTask(self.taskName, properties, code, self.getCodeFolder(), self.getRunFolder())
