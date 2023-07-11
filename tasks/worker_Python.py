@@ -17,7 +17,9 @@ def runNode(taskCaller, taskname, argsfromexecutor, nodeInfo, bdnodeInfo):
 	if(taskname is None):
 		return {}
 	session = taskCaller(taskname, nodeInfo, bdnodeInfo)
+	print("argsfromexecutor : ", argsfromexecutor)
 	parameters = session.formatInputs(argsfromexecutor)
+	print("parameters : ", parameters)
 	response = session.runTask(parameters)
 	return response
 

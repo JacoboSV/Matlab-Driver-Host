@@ -1,1 +1,0 @@
-{"formats": {"testingInputArray": {"data": "", "name": "", "format": "json"}}}

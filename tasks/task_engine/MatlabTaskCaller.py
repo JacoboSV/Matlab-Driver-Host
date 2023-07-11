@@ -175,11 +175,22 @@ class MatlabTaskCaller(TaskCaller):
 		
 		for arg in args:
 			if(isinstance(args[arg],str)):
+				# print("--- Type: str")
 				try:
 					self.engine.workspace[arg] = eval(args[arg])
 				except:
 					self.engine.workspace[arg] = args[arg]
+			elif(isinstance(args[arg],dict)):
+				# print("--- Type: dict")
+				args[arg] = json.dumps(args[arg])
+				# print("------- Transformed type: {0}".format(type(args[arg])))
+				# print("------- Transformed value: {0}".format(args[arg]))
+				
+				defvar_command = arg + ' = jsondecode(\'' + args[arg] + '\')'
+				# print("------- defvar_command: {0}".format(defvar_command))
+				self.engine.eval(defvar_command, background = True, nargout=0)
 			else:
+				# print("--- Type: Other")
 				self.engine.workspace[arg] = args[arg]
 			# self.engine.eval('disp(' + arg + ')', nargout = 0)
 		
@@ -255,7 +266,7 @@ class MatlabTaskCaller(TaskCaller):
 		try:
 				self.engine.eval('exit',nargout=0)
 		except:
-				print('Session Finished')
+				self.log('Session Finished')
 
 	def createTask(self, properties, code):
 		'''Creates a file to run the node code from a template. 

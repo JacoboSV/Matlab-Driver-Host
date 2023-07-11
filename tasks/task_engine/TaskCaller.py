@@ -22,6 +22,7 @@ class TaskCaller(object):
 		else:
 			self.userDataPath = '/code/' + userDataPath
 			nodePath = bdnodeInfo["nodePath"]
+			sys.stdout = self.outIO
 		builtins._userDataPath = '/code/' + userDataPath
 		code = bdnodeInfo["code"]
 		properties = bdnodeInfo["properties"]
@@ -29,7 +30,7 @@ class TaskCaller(object):
 		self.taskName = taskname.split('.')[0]
 		self.verbose = verbose
 		self.outIO = io.StringIO()
-		sys.stdout = self.outIO
+		# sys.stdout = self.outIO
 		self.getInOutTypes(bdnodeInfo)
 		self.log('Calling createTask')
 		self.folderHandler = remoteFolders(userDataPath = nodePath)

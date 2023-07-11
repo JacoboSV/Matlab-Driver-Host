@@ -60,7 +60,7 @@ class IOFormatter(object):
 				},
 			'matlab' : {
 				'bool' : bool,
-				# 'dict' : self.castDict_matlab,
+				# 'dict' : json.dumps,
 				'string'   : self.str_matlab,
 				'float' : float,
 				'number' : float,
@@ -196,6 +196,7 @@ class IOFormatter(object):
 		task: String
 			Name of the Node to be run, to be used in files and logs
 		'''
+		print("params: ", params)
 		self.task = task
 		args = {}
 		for variable in params['variables']:
@@ -211,13 +212,14 @@ class IOFormatter(object):
 				if('b64file' in variable['type']):
 					values = self.IN_CASTERS[self.language][paramType](paramName+'.'+variable['subtype'],variable['data'])
 				else:
-					print("paramType: ", paramType)
+					# print("paramType: {0}".format(paramType))
+					
 					print("variable['data']: ", variable['data'])
 					try:
 						values = self.IN_CASTERS[self.language][paramType](variable['data'])
 					except:
 						values = variable['data']
-					print("values: ", values)
+					#print("values: ", values)
 			args[paramName] = values
 		self.args = args
 		return args
